@@ -2,7 +2,7 @@ import React from 'react';
 import { Switch } from '@patternfly/react-core';
 
 import { gql, useQuery } from '@apollo/client';
-import client from 'src/apolloclient.js'
+import client from 'src/apolloclient'
 
 export class MockerSwitch extends React.Component {
   constructor(props) {

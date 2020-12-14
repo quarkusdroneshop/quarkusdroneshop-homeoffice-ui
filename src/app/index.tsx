@@ -6,7 +6,7 @@ import { AppRoutes } from '@app/routes';
 import '@app/app.css';
 
 import { ApolloProvider } from '@apollo/react-hooks'
-import client from 'src/apolloclient.js'
+import client from 'src/apolloclient'
 
 const App: React.FunctionComponent = () => (
   <Router>

@@ -14,7 +14,7 @@ import {
 } from '@patternfly/react-charts';
 
 import { gql, useQuery } from '@apollo/client';
-import client from 'src/apolloclient.js'
+import client from 'src/apolloclient'
 
 export class ItemSalesChart extends React.Component {
     constructor(props) {
@@ -22,35 +22,42 @@ export class ItemSalesChart extends React.Component {
         this.state = {
             data: []
           };
+        
+        this.loadGraphqlData = this.loadGraphqlData.bind(this);
 
-          const endingDate = new Date();
-          endingDate.setDate(endingDate.getDate());
-          const endDateString = endingDate.toISOString().slice(0,10);
-  
-          endingDate.setDate(endingDate.getDate() - 6);
-          const startDateString = endingDate.toISOString().slice(0,10);
-          
-  
-          const GET_ITEM_SALES = gql`
-          query itemSalesTotalsByDate($startDate: String!, $endDate: String!){
-            itemSalesTotalsByDate (startDate: $startDate, endDate: $endDate) {
-                item,
-                revenue,
-                salesTotal    
-            }
+        setInterval(this.loadGraphqlData, 30 * 1000);
+        this.loadGraphqlData();
+
+    }
+
+    loadGraphqlData(){
+        const endingDate = new Date();
+        endingDate.setDate(endingDate.getDate());
+        const endDateString = endingDate.toISOString().slice(0,10);
+
+        endingDate.setDate(endingDate.getDate() - 6);
+        const startDateString = endingDate.toISOString().slice(0,10);
+        
+
+        const GET_ITEM_SALES = gql`
+        query itemSalesTotalsByDate($startDate: String!, $endDate: String!){
+          itemSalesTotalsByDate (startDate: $startDate, endDate: $endDate) {
+              item,
+              revenue,
+              salesTotal    
           }
-          `;
+        }
+        `;
 
-          //console.log("Making GraphQL Request")
-          client.query({ 
-              query: GET_ITEM_SALES , 
-              variables: {startDate: startDateString, endDate: endDateString}
-            })
-            .then(response => {
-                this.setState({data:response.data.itemSalesTotalsByDate})
-            }
-          )
-
+        //console.log("Making GraphQL Request")
+        client.query({ 
+            query: GET_ITEM_SALES , 
+            variables: {startDate: startDateString, endDate: endDateString}
+          })
+          .then(response => {
+              this.setState({data:response.data.itemSalesTotalsByDate})
+          }
+        )
     }
 
     componentDidMount() {

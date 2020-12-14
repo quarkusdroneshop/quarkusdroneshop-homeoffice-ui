@@ -1,3 +1,10 @@
+#Local Development
+        npm install
+        npm run start:dev
+
+You will need the homeoffice-backend running, which also depends on a postgresql db
+
+
 #Full Stack Deployment on OpenShift
 
         oc new-project quarkuscoffeeshop-homeoffice

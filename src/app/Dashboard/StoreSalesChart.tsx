@@ -18,7 +18,7 @@ import {
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 
 import { gql, useQuery } from '@apollo/client';
-import client from 'src/apolloclient.js'
+import client from 'src/apolloclient'
 
 export class StoreSalesChart extends React.Component {
     constructor(props) {
@@ -29,38 +29,45 @@ export class StoreSalesChart extends React.Component {
             productLegend: []
           };
 
-          const endingDate = new Date();
-          endingDate.setDate(endingDate.getDate());
-          const endDateString = endingDate.toISOString().slice(0,10);
-  
-          endingDate.setDate(endingDate.getDate() - 6);
-          const startDateString = endingDate.toISOString().slice(0,10);
-          
-  
-          const GET_STORESALES = gql`
-          query StoreSales($startDate: String!, $endDate: String!){
-              storeServerSalesByDate (startDate: $startDate, endDate: $endDate) {
-              server
-              store,
-              sales{
-                  item,
-                  salesTotal,
-                  revenue
-              }
-              }
-          }
-          `;
+          this.loadGraphqlData = this.loadGraphqlData.bind(this);
 
-          //console.log("Making GraphQL Request")
-          client.query({ 
-              query: GET_STORESALES , 
-              variables: {startDate: startDateString, endDate: endDateString},
-            })
-            .then(response => {
-                this.ProcessGraphqlData(response.data.storeServerSalesByDate)
+          setInterval(this.loadGraphqlData, 30 * 1000);
+          this.loadGraphqlData();
+
+    }
+
+    loadGraphqlData(){
+        const endingDate = new Date();
+        endingDate.setDate(endingDate.getDate());
+        const endDateString = endingDate.toISOString().slice(0,10);
+
+        endingDate.setDate(endingDate.getDate() - 6);
+        const startDateString = endingDate.toISOString().slice(0,10);
+        
+
+        const GET_STORESALES = gql`
+        query StoreSales($startDate: String!, $endDate: String!){
+            storeServerSalesByDate (startDate: $startDate, endDate: $endDate) {
+            server
+            store,
+            sales{
+                item,
+                salesTotal,
+                revenue
             }
-          )
+            }
+        }
+        `;
 
+        //console.log("Making GraphQL Request")
+        client.query({ 
+            query: GET_STORESALES , 
+            variables: {startDate: startDateString, endDate: endDateString},
+          })
+          .then(response => {
+              this.ProcessGraphqlData(response.data.storeServerSalesByDate)
+          }
+        )
     }
 
     ProcessGraphqlData(data){

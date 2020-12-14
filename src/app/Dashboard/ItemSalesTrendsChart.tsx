@@ -17,7 +17,7 @@ import {
 } from '@patternfly/react-charts';
 
 import { gql, useQuery } from '@apollo/client';
-import client from 'src/apolloclient.js'
+import client from 'src/apolloclient'
 
 export class ItemSalesTrendsChart extends React.Component {
     constructor(props) {
@@ -27,6 +27,14 @@ export class ItemSalesTrendsChart extends React.Component {
           data: []
         };
 
+        this.loadGraphqlData = this.loadGraphqlData.bind(this);
+
+        setInterval(this.loadGraphqlData, 30 * 1000);
+        this.loadGraphqlData();
+        
+      }
+
+      loadGraphqlData(){
         const endingDate = new Date();
         endingDate.setDate(endingDate.getDate());
         const endDateString = endingDate.toISOString().slice(0,10);
@@ -57,7 +65,6 @@ export class ItemSalesTrendsChart extends React.Component {
               this.setState({data:response.data.productSalesByDate})
           }
         )
-
       }
     
       render() {

@@ -19,7 +19,7 @@ import {
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
 
 import { gql, useQuery } from '@apollo/client';
-import client from 'src/apolloclient.js'
+import client from 'src/apolloclient'
 
 export class AverageOrderTimeChart extends React.Component {
     constructor(props) {
@@ -27,32 +27,39 @@ export class AverageOrderTimeChart extends React.Component {
         this.state = {
             averageOrderUpTime: 60
           };
+        
+        this.loadGraphqlData = this.loadGraphqlData.bind(this);
 
-          const endingDate = new Date();
-          endingDate.setDate(endingDate.getDate());
-          const endDateString = endingDate.toISOString().slice(0,10);
-  
-          endingDate.setDate(endingDate.getDate() - 6);
-          const startDateString = endingDate.toISOString().slice(0,10);
-          
-  
-          const GET_AVERAGE_ORDER_TIME = gql`
-          query AverageOrderUpTime($startDate: String!, $endDate: String!){
-            averageOrderUpTime (startDate: $startDate, endDate: $endDate)
+        setInterval(this.loadGraphqlData, 30 * 1000);
+        this.loadGraphqlData();
+
+    }
+
+    loadGraphqlData(){
+        const endingDate = new Date();
+        endingDate.setDate(endingDate.getDate());
+        const endDateString = endingDate.toISOString().slice(0,10);
+
+        endingDate.setDate(endingDate.getDate() - 6);
+        const startDateString = endingDate.toISOString().slice(0,10);
+        
+
+        const GET_AVERAGE_ORDER_TIME = gql`
+        query AverageOrderUpTime($startDate: String!, $endDate: String!){
+          averageOrderUpTime (startDate: $startDate, endDate: $endDate)
+        }
+        `;
+
+        //console.log("Making GraphQL Request")
+        client.query({ 
+            query: GET_AVERAGE_ORDER_TIME , 
+            variables: {startDate: startDateString, endDate: endDateString}
+          })
+          .then(response => {
+              //console.log("Processing GraphQL Response")
+              this.setState({averageOrderUpTime:response.data.averageOrderUpTime})
           }
-          `;
-
-          //console.log("Making GraphQL Request")
-          client.query({ 
-              query: GET_AVERAGE_ORDER_TIME , 
-              variables: {startDate: startDateString, endDate: endDateString}
-            })
-            .then(response => {
-                //console.log("Processing GraphQL Response")
-                this.setState({averageOrderUpTime:response.data.averageOrderUpTime})
-            }
-          )
-
+        )
     }
 
     componentDidMount() {
