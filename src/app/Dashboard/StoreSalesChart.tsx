@@ -31,7 +31,7 @@ export class StoreSalesChart extends React.Component {
 
           this.loadGraphqlData = this.loadGraphqlData.bind(this);
 
-          setInterval(this.loadGraphqlData, 30 * 1000);
+          setInterval(this.loadGraphqlData, 5 * 1000);
           this.loadGraphqlData();
 
     }
