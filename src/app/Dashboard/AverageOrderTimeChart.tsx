@@ -30,7 +30,7 @@ export class AverageOrderTimeChart extends React.Component {
         
         this.loadGraphqlData = this.loadGraphqlData.bind(this);
 
-        setInterval(this.loadGraphqlData, 5 * 1000);
+        setInterval(this.loadGraphqlData, 3 * 1000);
         this.loadGraphqlData();
 
     }

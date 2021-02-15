@@ -29,7 +29,7 @@ export class ItemSalesTrendsChart extends React.Component {
 
         this.loadGraphqlData = this.loadGraphqlData.bind(this);
 
-        setInterval(this.loadGraphqlData, 5 * 1000);
+        setInterval(this.loadGraphqlData, 3 * 1000);
         this.loadGraphqlData();
         
       }
@@ -47,8 +47,8 @@ export class ItemSalesTrendsChart extends React.Component {
         query productSalesByDate($startDate: String!, $endDate: String!){
           productSalesByDate (startDate: $startDate, endDate: $endDate) {
             item,
-            sales{
-              item,
+            productItemSales{
+              item
               date,
               salesTotal
             }
@@ -116,7 +116,7 @@ export class ItemSalesTrendsChart extends React.Component {
                                         return (
                                           <ChartArea
                                           key={`${value.item}-${index}`}
-                                          data={value.sales}
+                                          data={value.productItemSales}
                                           x={"date"}
                                           y={"salesTotal"}
                                           interpolation="monotoneX"
