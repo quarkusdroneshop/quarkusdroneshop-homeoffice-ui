@@ -12,6 +12,9 @@ module.exports = env => {
     entry: {
       app: path.resolve(__dirname, 'src', 'index.tsx')
     },
+    stats: {
+      children: true,
+    },
     module: {
       rules: [
         {
