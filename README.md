@@ -1,3 +1,7 @@
+# Docs
+Please see the Github Pages Site for complete documentation: [quarkuscoffeeshop.github.io](https://quarkuscoffeeshop.github.io)
+
+
 #Local Development
         npm install
         npm run start:dev
