@@ -1,13 +1,14 @@
-import { ApolloClient, DefaultOptions } from 'apollo-client'
-import { InMemoryCache } from 'apollo-cache-inmemory'
-import { HttpLink } from 'apollo-link-http'
+import { ApolloClient, DefaultOptions, InMemoryCache, HttpLink } from '@apollo/client';
 
-const graphqlEndpoint = process.env.REACT_APP_GRAPHQL_ENDPOINT || 'http://0.0.0.0:8080/graphql';
+const graphqlEndpoint = process.env.REACT_APP_GRAPHQL_ENDPOINT;
 console.log("GraphQL Endpoint: " + graphqlEndpoint);
 
-const link = new HttpLink({ uri: graphqlEndpoint })
-const cache = new InMemoryCache()
+const link = new HttpLink({
+  uri: graphqlEndpoint,
+  credentials: 'include',
+});
 
+const cache = new InMemoryCache();
 
 const defaultOptions: DefaultOptions = {
   watchQuery: {
@@ -18,15 +19,12 @@ const defaultOptions: DefaultOptions = {
     fetchPolicy: 'no-cache',
     errorPolicy: 'all',
   },
-}
-
+};
 
 const client = new ApolloClient({
   link,
   cache,
-  defaultOptions: defaultOptions,
-  fetchOptions: {
-    mode: 'no-cors',
-  },
-})
-export default client
+  defaultOptions,
+});
+
+export default client;

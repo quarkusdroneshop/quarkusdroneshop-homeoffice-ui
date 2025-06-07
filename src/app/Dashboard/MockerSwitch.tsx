@@ -1,60 +1,68 @@
 import React from 'react';
 import { Switch } from '@patternfly/react-core';
 
-import { gql, useQuery } from '@apollo/client';
-import client from 'src/apolloclient'
+import { gql } from '@apollo/client';
+import client from 'src/apolloclient';
+
+const GET_MOCKER_STATUS = gql`
+  query {
+    mockerPaused
+  }
+`;
+
+const CHANGE_MOCKER = gql`
+  mutation mockerTogglePause($toggle: Boolean!) {
+    mockerTogglePause(toggle: $toggle)
+  }
+`;
 
 export class MockerSwitch extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      isChecked: false
+      isChecked: false,
+      loading: true,
+      error: null,
     };
-    
+    this.handleChange = this.handleChange.bind(this);
+  }
 
-    const GET_MOCKER_STATUS = gql`
-    query {
-      mockerPaused
-    }
-    `;
-
-    const CHANGE_MOCKER = gql`
-    query mockerTogglePause($toggle: Boolean!){
-      mockerTogglePause(toggle:$toggle)
-    }
-    `;
-
-    //console.log("Making GraphQL Request")
-    client.query({ 
-        query: GET_MOCKER_STATUS
-      })
+  componentDidMount() {
+    client.query({ query: GET_MOCKER_STATUS })
       .then(response => {
-        console.log(`Mocker status from GraphQL: ${response.data.mockerPaused}`)
-          this.setState({isChecked:response.data.mockerPaused})
-      }
-    )
-
-    this.handleChange = isChecked => {
-
-      this.setState({ isChecked });
-      //console.log("Making GraphQL Request")
-    
-      client.query({ 
-        query: CHANGE_MOCKER, 
-        variables: {toggle: isChecked}
+        this.setState({ isChecked: response.data.mockerPaused, loading: false });
       })
-      .then(response => {
-        console.log(`Mocker change status from GraphQL: ${response.data.mockerTogglePause}`)
-          this.setState({isChecked:response.data.mockerTogglePause})
-      })
+      .catch(error => {
+        console.error('Failed to fetch mocker status:', error);
+        this.setState({ error, loading: false });
+      });
+  }
 
-    };
-    
+  handleChange(isChecked) {
+    // 先に状態更新（楽観的UI）
+    this.setState({ isChecked });
+
+    client.mutate({
+      mutation: CHANGE_MOCKER,
+      variables: { toggle: isChecked }
+    })
+    .then(response => {
+      // サーバー側の結果に合わせて状態を更新
+      this.setState({ isChecked: response.data.mockerTogglePause });
+    })
+    .catch(error => {
+      console.error('Failed to change mocker status:', error);
+      // エラー時は元の状態に戻す
+      this.setState(prevState => ({ isChecked: !prevState.isChecked }));
+    });
   }
 
   render() {
+    const { isChecked, loading, error } = this.state;
 
-    const { isChecked } = this.state;
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>Error loading status</div>;
+
     return (
       <Switch
         id="simple-switch"
@@ -65,5 +73,4 @@ export class MockerSwitch extends React.Component {
       />
     );
   }
-  
 }

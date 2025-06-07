@@ -1,89 +1,87 @@
 import * as React from 'react';
+import {
+  PageSection,
+  PageSectionVariants,
+  Text,
+  TextContent,
+  Divider,
+  Stack,
+  StackItem,
+  LabelGroup,
+  Label,
+  Flex,
+  FlexItem,
+  Level,
+  LevelItem
+} from '@patternfly/react-core';
 
 import {
-    PageSection,
-    PageSectionVariants,
-    Text,
-    TextContent,
-    Divider,
-    Stack, 
-    StackItem,
-    LabelGroup,
-    Label,
-    Flex,
-    FlexItem,
-    Level,
-    LevelItem
-   } from '@patternfly/react-core';
-
-import { 
-  CheckCircleIcon,
-  InfoCircleIcon
+  CheckCircleIcon
 } from '@patternfly/react-icons';
 
 import { ItemSalesChart } from './ItemSalesChart';
 import { ItemSalesTrendsChart } from './ItemSalesTrendsChart';
-import { StoreSalesChart } from './StoreSalesChart'
-import { AverageOrderTimeChart } from './AverageOrderTimeChart'
-import { MockerSwitch } from './MockerSwitch'
+import { StoreSalesChart } from './StoreSalesChart';
+import { AverageOrderTimeChart } from './AverageOrderTimeChart';
+import { MockerSwitch } from './MockerSwitch';
 
-export class Dashboard extends React.Component{
-    constructor(props) {
-      super(props);
-    }
+export class Dashboard extends React.Component {
+  render() {
+    return (
+      <React.Fragment>
+        {/* ヘッダーセクション */}
+        <PageSection variant={PageSectionVariants.light}>
+          <Level hasGutter>
+            <LevelItem>
+              <TextContent>
+                <Text component="h1">Dashboard</Text>
+              </TextContent>
+            </LevelItem>
 
-    public render() {
-        return (
-            <React.Fragment>
-            <PageSection variant={PageSectionVariants.light}>
+            <LevelItem>
+              <LabelGroup categoryName="Key Metrics">
+                <Label icon={<CheckCircleIcon />} color="green">OrderUp</Label>
+                <Label icon={<CheckCircleIcon />} color="green">Sales</Label>
+                <Label icon={<CheckCircleIcon />} color="green">Inventory</Label>
+              </LabelGroup>
+            </LevelItem>
 
-            <Level hasGutter>
-              <LevelItem>
-                <TextContent>
-                  <Text component="h1">Dashboard</Text>
-                </TextContent>
-              </LevelItem>
-              <LevelItem>
-                <LabelGroup categoryName="Key Metrics">
-                  <Label icon={<CheckCircleIcon />} color="green">OrderUp</Label>
-                  <Label icon={<CheckCircleIcon />} color="green">Sales</Label>
-                  <Label icon={<CheckCircleIcon />} color="green">Inventory</Label>
-                </LabelGroup>
-              </LevelItem>
-              <LevelItem>
-                <MockerSwitch />
-              </LevelItem>
-            </Level>
+            <LevelItem>
+              <MockerSwitch />
+            </LevelItem>
+          </Level>
+        </PageSection>
 
+        <Divider component="div" />
 
+        {/* 売上・注文時間チャート */}
+        <PageSection variant={PageSectionVariants.default}>
+          <Flex gap={{ default: 'gapLg' }} wrap={{ default: 'wrap' }}>
+            <FlexItem>
+              <StoreSalesChart />
+            </FlexItem>
 
-            </PageSection>
-            <Divider component="div" />
-            <PageSection variant={PageSectionVariants.default}>
-            <Flex>
-            
-                <FlexItem>
-                  <StoreSalesChart />
-                </FlexItem>
+            <FlexItem>
+              <AverageOrderTimeChart />
+            </FlexItem>
+          </Flex>
+        </PageSection>
 
-                <FlexItem>
-                  <AverageOrderTimeChart />
-                </FlexItem>
+        <Divider component="div" />
 
-            </Flex>
-            </PageSection>
-            <Divider component="div" />
-            <PageSection variant={PageSectionVariants.default}>
-            <Flex>
-                <FlexItem>
-                  <ItemSalesChart />
-                </FlexItem>
-                <FlexItem>
-                  <ItemSalesTrendsChart />
-                </FlexItem>
-            </Flex>
-            </PageSection>
-        </React.Fragment>     
-        )
-    }
+        {/* 商品チャート */}
+        <PageSection variant={PageSectionVariants.default}>
+          <Flex gap={{ default: 'gapLg' }} wrap={{ default: 'wrap' }}>
+            <FlexItem>
+              <ItemSalesChart />
+            </FlexItem>
+
+            <FlexItem>
+              <ItemSalesTrendsChart />
+            </FlexItem>
+          </Flex>
+        </PageSection>
+      </React.Fragment>
+    );
+  }
 }

@@ -1,113 +1,98 @@
 import React from 'react';
+import {
+  Card,
+  CardBody,
+  CardTitle
+} from '@patternfly/react-core';
 
 import {
-    Card,
-    CardBody,
-    CardTitle,
-
-   } from '@patternfly/react-core';
-
-   import {  
-    ChartThemeColor,  
-    ChartDonut, 
-    ChartLegend
+  ChartThemeColor,
+  ChartDonut,
+  ChartLegend
 } from '@patternfly/react-charts';
 
-import { gql, useQuery } from '@apollo/client';
-import client from 'src/apolloclient'
+import { gql } from '@apollo/client';
+import client from 'src/apolloclient';
+
+const GET_ITEM_SALES = gql`
+  query itemSalesTotalsByDate($startDate: String!, $endDate: String!) {
+    itemSalesTotalsByDate(startDate: $startDate, endDate: $endDate) {
+      item
+      revenue
+      salesTotal
+    }
+  }
+`;
 
 export class ItemSalesChart extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            data: []
-          };
-        
-        this.loadGraphqlData = this.loadGraphqlData.bind(this);
+  intervalId: NodeJS.Timeout | undefined;
 
-        setInterval(this.loadGraphqlData, 3 * 1000);
-        this.loadGraphqlData();
+  constructor(props) {
+    super(props);
+    this.state = {
+      data: []
+    };
+    this.loadGraphqlData = this.loadGraphqlData.bind(this);
+  }
 
+  componentDidMount() {
+    this.loadGraphqlData();
+    this.intervalId = setInterval(this.loadGraphqlData, 3000);
+  }
+
+  componentWillUnmount() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
     }
+  }
 
-    loadGraphqlData(){
-        const endingDate = new Date();
-        endingDate.setDate(endingDate.getDate());
-        const endDateString = endingDate.toISOString().slice(0,10);
+  loadGraphqlData() {
+    const endingDate = new Date();
+    const endDateString = endingDate.toISOString().slice(0, 10);
+    endingDate.setDate(endingDate.getDate() - 6);
+    const startDateString = endingDate.toISOString().slice(0, 10);
 
-        endingDate.setDate(endingDate.getDate() - 6);
-        const startDateString = endingDate.toISOString().slice(0,10);
-        
+    client
+      .query({
+        query: GET_ITEM_SALES,
+        variables: { startDate: startDateString, endDate: endDateString }
+      })
+      .then((response) => {
+        this.setState({ data: response.data.itemSalesTotalsByDate });
+      })
+      .catch((error) => {
+        console.error('GraphQL Error:', error);
+      });
+  }
 
-        const GET_ITEM_SALES = gql`
-        query itemSalesTotalsByDate($startDate: String!, $endDate: String!){
-          itemSalesTotalsByDate (startDate: $startDate, endDate: $endDate) {
-              item,
-              revenue,
-              salesTotal    
-          }
-        }
-        `;
+  render() {
+    const data = this.state.data || [];
+    const totalSales = data.reduce((sum, item) => sum + (item.salesTotal || 0), 0);
 
-        //console.log("Making GraphQL Request")
-        client.query({ 
-            query: GET_ITEM_SALES , 
-            variables: {startDate: startDateString, endDate: endDateString}
-          })
-          .then(response => {
-              this.setState({data:response.data.itemSalesTotalsByDate})
-          }
-        )
-    }
-
-    componentDidMount() {
-
-    }
-
-    
-    render() {
-        //get data from state
-        const data = this.state.data;
-        let totalSales = 0;
-        if (data !== undefined && data.length > 0){
-            totalSales = data.reduce((a, b) => a + (b["salesTotal"] || 0), 0);
-        }
-
-        const BasicRightAlignedLegend = (
-            <Card isHoverable>
-                    <CardTitle>Item Sales Totals</CardTitle>
-                    <CardBody>
-                        <div style={{  width: '350px'}}>
-                            <ChartDonut
-                            ariaTitle="Relative Item Sales"
-                            data={data}
-                            x={"item"}
-                            y={"salesTotal"}
-                            labels={({ datum }) => `${datum.item}: ${datum.salesTotal}`}
-                            legendData={data.map(i => {
-                                return {name: i.item}
-                            })}
-                            legendOrientation="vertical"
-                            legendPosition="right"
-                            legendComponent={
-                                <ChartLegend style={{labels: {fontSize: 12}}}/>
-                              }
-                            padding={{
-                                bottom: 0,
-                                left: 5,
-                                right: 150, // Adjusted to accommodate legend
-                                top: 0
-                            }}
-                            subTitle="Last 7 Days"
-                            title={totalSales}
-                            themeColor={ChartThemeColor.multiOrdered}
-                            width={350}
-                            />
-                        </div>
-                    </CardBody>
-                </Card>
-
-        ) 
-        return BasicRightAlignedLegend;
-    }
+    return (
+      <Card isHoverable>
+        <CardTitle>Item Sales Totals</CardTitle>
+        <CardBody>
+          <div style={{ width: '100%', maxWidth: '400px' }}>
+            <ChartDonut
+              ariaTitle="Relative Item Sales"
+              data={data}
+              x="item"
+              y="salesTotal"
+              labels={({ datum }) => `${datum.item}: ${datum.salesTotal}`}
+              legendData={data.map((i) => ({ name: i.item }))}
+              legendOrientation="vertical"
+              legendPosition="right"
+              legendComponent={<ChartLegend style={{ labels: { fontSize: 12 } }} />}
+              padding={{ top: 20, bottom: 20, left: 20, right: 150 }}
+              subTitle="Last 7 Days"
+              title={totalSales}
+              themeColor={ChartThemeColor.multiOrdered}
+              width={400}
+            />
+          </div>
+        </CardBody>
+      </Card>
+    );
+  }
 }
