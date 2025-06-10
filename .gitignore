@@ -106,3 +106,4 @@ dist
 .tern-port
 .env.bak
 .nomrc
+.npmrc
