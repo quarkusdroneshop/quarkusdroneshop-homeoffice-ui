@@ -132,7 +132,7 @@ module.exports = env => {
           { from: './src/app/favicon.ico', to: 'images' },
         ]
       }),
-      new webpack.EnvironmentPlugin({REACT_APP_GRAPHQL_ENDPOINT: process.env.REACT_APP_GRAPHQL_ENDPOINT})
+      new webpack.EnvironmentPlugin({REACT_APP_GRAPHQL_ENDPOINT: "http://homeoffice-backend.quarkuscoffeeshop-demo.svc"})
     ],
     resolve: {
       extensions: ['.js', '.ts', '.tsx', '.jsx'],
