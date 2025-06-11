@@ -106,3 +106,4 @@ dist
 .env.bak
 .nomrc
 .npmrc
+npmrc
