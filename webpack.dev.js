@@ -2,7 +2,7 @@ const path = require('path');
 const { merge } = require("webpack-merge");
 const common = require("./webpack.common.js");
 const HOST = process.env.HOST || "0.0.0.0";
-const PORT = process.env.PORT || "9010";
+const PORT = process.env.PORT || "9090";
 
 
 module.exports = merge(common('development'), {
@@ -13,7 +13,7 @@ module.exports = merge(common('development'), {
       directory: path.join(__dirname, 'dist'),
     },
     compress: true,
-    port: 9010,
+    port: 9090,
     hot: true,
     historyApiFallback: true,
   },
