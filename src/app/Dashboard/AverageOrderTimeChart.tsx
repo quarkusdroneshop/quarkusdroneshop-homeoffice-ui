@@ -14,7 +14,11 @@ import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon
 import { gql } from '@apollo/client';
 import client from 'src/apolloclient';
 
+
 export class AverageOrderTimeChart extends React.Component {
+
+  private intervalId: number | null = null;
+
   constructor(props) {
     super(props);
     this.state = {
@@ -26,13 +30,13 @@ export class AverageOrderTimeChart extends React.Component {
 
   componentDidMount() {
     this.loadGraphqlData();
-    // 3秒ごとに更新（※実運用では10秒～60秒程度が推奨）
-    this.intervalId = setInterval(this.loadGraphqlData, 3000);
+    this.intervalId = window.setInterval(this.loadGraphqlData, 3000)
   }
 
   componentWillUnmount() {
-    // コンポーネント破棄時にタイマーを止める
-    clearInterval(this.intervalId);
+    if (this.intervalId !== null) {
+      clearInterval(this.intervalId);
+    }
   }
 
   loadGraphqlData() {
@@ -43,11 +47,18 @@ export class AverageOrderTimeChart extends React.Component {
     start.setDate(start.getDate() - 6);
     const startDateString = start.toISOString().slice(0, 10);
 
+    // console("startDateString: " + startDateString);
+    // console("ENDDateString: " + endDateString);
+    // const GET_AVERAGE_ORDER_TIME = gql`
+    //   query AverageOrderUpTime($startDate: String!, $endDate: String!) {
+    //     averageOrderUpTime(startDate: $startDate, endDate: $endDate)
+    //   }
+    // `;
     const GET_AVERAGE_ORDER_TIME = gql`
-      query AverageOrderUpTime($startDate: String!, $endDate: String!) {
-        averageOrderUpTime(startDate: $startDate, endDate: $endDate)
-      }
-    `;
+    query AverageOrderUpTime($startDate: String!, $endDate: String!) {
+      averageOrderUpTime(startDate: $startDate, endDate: $endDate)
+    }
+  `;
 
     client
       .query({
@@ -64,6 +75,7 @@ export class AverageOrderTimeChart extends React.Component {
       .catch((error) => {
         console.error('GraphQL Error:', error);
       });
+      
   }
 
   render() {

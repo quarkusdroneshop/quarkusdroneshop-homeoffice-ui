@@ -55,10 +55,10 @@ export class StoreSalesChart extends React.Component {
           storeServerSalesByDate(startDate: $startDate, endDate: $endDate) {
             server
             store
-            sales {
-              item
-              salesTotal
-              revenue
+            itemSales {
+            item
+            salesTotal
+            revenue
             }
           }
         }
@@ -69,6 +69,7 @@ export class StoreSalesChart extends React.Component {
         variables: { startDate: startDateString, endDate: endDateString },
       })
       .then(response => {
+        console.log('GraphQL response:', response.data);
         this.ProcessGraphqlData(response.data.storeServerSalesByDate);
       })
       .catch(err => {
@@ -77,23 +78,19 @@ export class StoreSalesChart extends React.Component {
     }
   
     ProcessGraphqlData(data) {
-      // flattenの代わりに flat() を使う
       const flatten = arr => arr.flat();
-  
+    
       const stores = Array.from(new Set(data.map(item => item.store)));
-  
-      const allItemSales = flatten(data.map(server => server.sales));
-  
+      const allItemSales = flatten(data.map(server => server.itemSales));
+    
       const products = Array.from(new Set(allItemSales.map(i => i.item))).sort();
-  
       const productLegend = products.map(product => ({ name: product }));
-  
       const chartData = Array.from({ length: products.length }, () => []);
-  
+    
       stores.forEach(store => {
         const storeRecords = data.filter(i => i.store === store);
-        const storeItemSales = flatten(storeRecords.map(server => server.sales));
-  
+        const storeItemSales = flatten(storeRecords.map(server => server.itemSales));
+    
         for (let index = 0; index < products.length; index++) {
           const product = products[index];
           const itemSales = storeItemSales
@@ -102,11 +99,11 @@ export class StoreSalesChart extends React.Component {
           const itemRevenue = storeItemSales
             .filter(i => i.item === product)
             .reduce((prev, curr) => prev + curr.revenue, 0);
-  
+    
           chartData[index].push({ name: product, x: store, y: itemSales, revenue: itemRevenue });
         }
       });
-  
+    
       this.setState({
         products,
         productLegend,
