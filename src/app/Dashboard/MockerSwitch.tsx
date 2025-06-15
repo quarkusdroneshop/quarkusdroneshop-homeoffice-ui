@@ -61,7 +61,7 @@ export class MockerSwitch extends React.Component {
     const { isChecked, loading, error } = this.state;
 
     if (loading) return <div>Loading...</div>;
-    if (error) return <div>Error loading status</div>;
+    if (error) return <div></div>;
 
     return (
       <Switch
