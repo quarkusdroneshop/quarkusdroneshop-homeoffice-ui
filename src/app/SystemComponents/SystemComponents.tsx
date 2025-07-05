@@ -48,7 +48,7 @@ import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/excla
 import FilterIcon from '@patternfly/react-icons/dist/js/icons/filter-icon';
 import SearchIcon from '@patternfly/react-icons/dist/js/icons/search-icon';
 import TimesCircleIcon from '@patternfly/react-icons/dist/js/icons/times-circle-icon';
-import coffeeIcon from '../images/coffee-16x16.png';
+import droneIcon from '../images/drone-16x16.png';
 
 import { WebItem } from './Web/WebItem';
 
@@ -65,7 +65,7 @@ export class SystemComponents extends React.Component{
       statusIsExpanded: false,
       statusSelected: null,
       selectedDataListItemId: '',
-      coffeeRemaining: 75,
+      droneRemaining: 75,
       foodRemaining: 50
     };
 
@@ -97,7 +97,7 @@ export class SystemComponents extends React.Component{
       statusIsExpanded,
       statusSelected,
       selectedDataListItemId,
-      coffeeRemaining,
+      droneRemaining,
       foodRemaining
     } = this.state;
 
@@ -148,7 +148,7 @@ export class SystemComponents extends React.Component{
                       <Title headingLevel="h3" size="xl">Counter</Title>
                         <small>
                           <div>coordinates events in the system</div>
-                          <a>https://github.com/quarkuscoffeeshop/quarkuscoffeeshop-counter</a>
+                          <a>https://github.com/quarkusdroneshop/quarkusdroneshop-counter</a>
                         </small>
                       </FlexItem>
                       <Flex>
@@ -211,7 +211,7 @@ export class SystemComponents extends React.Component{
                       <Title headingLevel="h3" size="xl">Barista</Title>
                         <small>
                           <div>makes drinks</div>
-                          <a>https://github.com/quarkuscoffeeshop/quarkuscoffeeshop-barista</a>
+                          <a>https://github.com/quarkusdroneshop/quarkusdroneshop-barista</a>
                         </small>
                       </FlexItem>
                       <Flex>
@@ -234,11 +234,11 @@ export class SystemComponents extends React.Component{
                         ariaDesc="Coffee Remaining"
                         ariaTitle="Coffee Remaining"
                         constrainToVisibleArea={true}
-                        data={{ x: 'Coffee Remaining', y: coffeeRemaining }}
+                        data={{ x: 'Coffee Remaining', y: droneRemaining }}
                         invert
                         height={140}
                         subTitle="remaining"
-                        title={`${coffeeRemaining}%`}
+                        title={`${droneRemaining}%`}
                         thresholds={[{ value: 30 }, { value: 20 }]}
                         width={140}
                       />
@@ -265,7 +265,7 @@ export class SystemComponents extends React.Component{
                       <Title headingLevel="h3" size="xl">Kitchen</Title>
                         <small>
                           <div>makes food</div>
-                          <a>https://github.com/quarkuscoffeeshop/quarkuscoffeeshop-kitchen</a>
+                          <a>https://github.com/quarkusdroneshop/quarkusdroneshop-kitchen</a>
                         </small>
                       </FlexItem>
                       <Flex>
@@ -328,12 +328,12 @@ export class SystemComponents extends React.Component{
                       <Title headingLevel="h3" size="xl">Inventory</Title>
                         <small>
                           <div>stores and restocks the inventory for the Barista and Kitchen microservices</div>
-                          <a>https://github.com/quarkuscoffeeshop/quarkuscoffeeshop-inventory</a>
+                          <a>https://github.com/quarkusdroneshop/quarkusdroneshop-inventory</a>
                         </small>
                       </FlexItem>
                       <Flex>
                         <FlexItem>
-                        <img alt="coffee" src={coffeeIcon} /> 10
+                        <img alt="drone" src={droneIcon} /> 10
                         </FlexItem>
                         <FlexItem>
                           <CodeIcon /> 4

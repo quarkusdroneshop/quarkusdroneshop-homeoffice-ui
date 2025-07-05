@@ -45,7 +45,7 @@ export class BaristaItem extends React.Component {
                   <Title headingLevel="h3" size="xl">Web</Title>
                     <small>
                       <div>the web front end (no way you saw that coming)</div>
-                      <a>https://github.com/quarkuscoffeeshop/quarkuscoffeeshop-web</a>
+                      <a>https://github.com/quarkusdroneshop/quarkusdroneshop-web</a>
                     </small>
                   </FlexItem>
                   <Flex>

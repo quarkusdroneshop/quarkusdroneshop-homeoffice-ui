@@ -13,7 +13,7 @@ import {
   PageHeaderTools
 } from '@patternfly/react-core';
 import { routes, IAppRoute, IAppRouteGroup } from '@app/routes';
-import logo from '@app/images/coffee-16x16.png';
+import logo from '@app/images/drone-16x16.png';
 import packageJson from '/package.json';
 
 interface IAppLayout {
