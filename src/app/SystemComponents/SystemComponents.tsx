@@ -201,17 +201,17 @@ export class SystemComponents extends React.Component{
               />
             </DataListItemRow>
           </DataListItem>
-          <DataListItem key="Barista" id="Barista">
+          <DataListItem key="QDCA10" id="QDCA10">
             <DataListItemRow>
               <DataListItemCells
                 dataListCells={[
                   <DataListCell key="primary content">
                     <Flex direction={{ default: 'column' }}>
                       <FlexItem>
-                      <Title headingLevel="h3" size="xl">Barista</Title>
+                      <Title headingLevel="h3" size="xl">QDCA10</Title>
                         <small>
                           <div>makes drinks</div>
-                          <a>https://github.com/quarkusdroneshop/quarkusdroneshop-barista</a>
+                          <a>https://github.com/quarkusdroneshop/quarkusdroneshop-qdca10</a>
                         </small>
                       </FlexItem>
                       <Flex>
@@ -228,7 +228,7 @@ export class SystemComponents extends React.Component{
                       </Flex>
                     </Flex>
                   </DataListCell>,
-                  <DataListCell key="barista inventory graph">
+                  <DataListCell key="QDCA10 inventory graph">
                     <div style={{ height: '140px', width: '140px' }}>
                       <ChartDonutUtilization
                         ariaDesc="Coffee Remaining"
@@ -255,17 +255,17 @@ export class SystemComponents extends React.Component{
               />
             </DataListItemRow>
           </DataListItem>
-          <DataListItem key="Kitchen" id="Kitchen">
+          <DataListItem key="QDCA10Pro" id="QDCA10Pro">
             <DataListItemRow>
               <DataListItemCells
                 dataListCells={[
                   <DataListCell key="primary content">
                     <Flex direction={{ default: 'column' }}>
                       <FlexItem>
-                      <Title headingLevel="h3" size="xl">Kitchen</Title>
+                      <Title headingLevel="h3" size="xl">QDCA10Pro</Title>
                         <small>
                           <div>makes food</div>
-                          <a>https://github.com/quarkusdroneshop/quarkusdroneshop-kitchen</a>
+                          <a>https://github.com/quarkusdroneshop/quarkusdroneshop-qdca10pro</a>
                         </small>
                       </FlexItem>
                       <Flex>
@@ -291,7 +291,7 @@ export class SystemComponents extends React.Component{
                       </Flex>
                     </Flex>
                   </DataListCell>,
-                  <DataListCell key="kitchen inventory graph">
+                  <DataListCell key="QDCA10Pro inventory graph">
                   <div style={{ height: '140px', width: '140px'}}>
                     <ChartDonutUtilization
                       ariaDesc="Food Remaining"
@@ -327,7 +327,7 @@ export class SystemComponents extends React.Component{
                       <FlexItem>
                       <Title headingLevel="h3" size="xl">Inventory</Title>
                         <small>
-                          <div>stores and restocks the inventory for the Barista and Kitchen microservices</div>
+                          <div>stores and restocks the inventory for the QDCA10 and QDCA10Pro microservices</div>
                           <a>https://github.com/quarkusdroneshop/quarkusdroneshop-inventory</a>
                         </small>
                       </FlexItem>

@@ -29,7 +29,7 @@ import {
     TextContent,
    } from '@patternfly/react-core';
    
-export class BaristaItem extends React.Component {
+export class QDCA10Item extends React.Component {
   constructor(props) {
     super(props);
   }
