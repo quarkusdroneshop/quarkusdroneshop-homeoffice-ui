@@ -1,7 +1,7 @@
 {
   "name": "quarkusdroneshop-homeoffice-ui",
   "version": "0.1.5",
-  "description": "UI for Quarkus Coffeeshop Homeoffice",
+  "description": "UI for Quarkus Droneshop Homeoffice",
   "main": "server.js",
   "repository": "https://github.com/quarkusdroneshop/quarkusdroneshop-homeoffice-ui.git",
   "homepage": "https://github.com/quarkusdroneshop/quarkusdroneshop-homeoffice-ui",

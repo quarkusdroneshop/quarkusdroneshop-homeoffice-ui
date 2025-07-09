@@ -42,10 +42,10 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({children}) => {
     return (
       <div onClick={handleClick}>
         <span className="menulogo">
-          <img src={logo} alt="Quarkus Coffeeshop Homeoffice" />
+          <img src={logo} alt="Quarkus Droneshop Homeoffice" />
         </span>
         <span className="menutitle">
-          <Text component="p">Quarkus Coffeeshop Homeoffice</Text>
+          <Text component="p">Quarkus Droneshop Homeoffice</Text>
         </span>
       </div>
     );

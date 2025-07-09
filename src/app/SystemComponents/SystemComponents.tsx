@@ -231,10 +231,10 @@ export class SystemComponents extends React.Component{
                   <DataListCell key="QDCA10 inventory graph">
                     <div style={{ height: '140px', width: '140px' }}>
                       <ChartDonutUtilization
-                        ariaDesc="Coffee Remaining"
-                        ariaTitle="Coffee Remaining"
+                        ariaDesc="Drone Remaining"
+                        ariaTitle="Drone Remaining"
                         constrainToVisibleArea={true}
-                        data={{ x: 'Coffee Remaining', y: droneRemaining }}
+                        data={{ x: 'Drone Remaining', y: droneRemaining }}
                         invert
                         height={140}
                         subTitle="remaining"
