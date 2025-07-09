@@ -132,7 +132,7 @@ module.exports = env => {
           { from: './src/app/favicon.ico', to: 'images' },
         ]
       }),
-      new webpack.EnvironmentPlugin({REACT_APP_GRAPHQL_ENDPOINT: process.env.REACT_APP_GRAPHQL_ENDPOINT || "http://0.0.0.0:8080/graphql"})
+      new webpack.EnvironmentPlugin({REACT_APP_GRAPHQL_ENDPOINT: process.env.REACT_APP_GRAPHQL_ENDPOINT || "http://homeoffice-backend-quarkusdroneshop-demo.apps.cluster-8sffx.8sffx.sandbox2156.opentlc.com/graphql"})
     ],
     resolve: {
       extensions: ['.js', '.ts', '.tsx', '.jsx'],
