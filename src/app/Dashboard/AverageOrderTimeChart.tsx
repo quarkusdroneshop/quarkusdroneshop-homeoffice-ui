@@ -89,10 +89,10 @@ export class AverageOrderTimeChart extends React.Component {
     return (
       <Card isHoverable>
         <CardTitle>
-          Average OrderUp Time: {minutes} minutes {seconds} seconds
+          Average OrderUp Day: {minutes} month {seconds} days
         </CardTitle>
         <CardBody>
-          <div style={{ height: '172px', width: '500px' }}>
+          <div style={{ height: '172px', width: '550px' }}>
             <ChartBullet
               ariaDesc="Order processing performance"
               ariaTitle="Average OrderUp Time"
@@ -107,7 +107,7 @@ export class AverageOrderTimeChart extends React.Component {
                 { name: 'Lower Range', y: lowerRange },
                 { name: 'Upper Range', y: upperRange },
               ]}
-              width={500}
+              width={550}
             />
           </div>
 
