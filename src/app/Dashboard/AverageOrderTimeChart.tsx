@@ -80,46 +80,54 @@ export class AverageOrderTimeChart extends React.Component {
 
   render() {
     const { averageOrderUpTime } = this.state;
+  
+    // 表示用：秒 → 分・秒
     const minutes = Math.floor(averageOrderUpTime / 60);
-    const seconds = Math.round(averageOrderUpTime % 60);
-
-    const lowerRange = (minutes - 1) * 60;
-    const upperRange = (minutes + 1) * 60;
-
+    const seconds = averageOrderUpTime % 60;
+  
+    // グラフ用（秒のまま）
+    const lowerRange = Math.max(0, averageOrderUpTime - 60);
+    const upperRange = averageOrderUpTime + 60;
+  
     return (
       <Card isHoverable>
         <CardTitle>
-          Average OrderUp Day: {minutes} month {seconds} days
+          Average OrderUp Time: {minutes} minutes {seconds} seconds
         </CardTitle>
+  
         <CardBody>
           <div style={{ height: '172px', width: '550px' }}>
             <ChartBullet
               ariaDesc="Order processing performance"
               ariaTitle="Average OrderUp Time"
-              comparativeWarningMeasureData={[{ name: 'Warning', y: 200 }]}
-              comparativeErrorMeasureData={[{ name: 'Critical', y: 300 }]}
+              comparativeWarningMeasureData={[
+                { name: 'Warning', y: 200 }
+              ]}
+              comparativeErrorMeasureData={[
+                { name: 'Critical', y: 300 }
+              ]}
               constrainToVisibleArea
               height={172}
-              labels={({ datum }) => `${datum.name}: ${datum.y}`}
+              labels={({ datum }) => `${datum.name}: ${datum.y}s`}
               maxDomain={{ y: 360 }}
-              primarySegmentedMeasureData={[{ name: 'Current', y: averageOrderUpTime }]}
+              primarySegmentedMeasureData={[
+                { name: 'Current', y: averageOrderUpTime }
+              ]}
               qualitativeRangeData={[
                 { name: 'Lower Range', y: lowerRange },
-                { name: 'Upper Range', y: upperRange },
+                { name: 'Upper Range', y: upperRange }
               ]}
               width={550}
             />
           </div>
-
+  
           <DataList aria-label="Performance Benchmarks" isCompact>
-            <DataListItem aria-labelledby="item-excellent">
+            <DataListItem>
               <DataListItemRow>
                 <DataListItemCells
                   dataListCells={[
                     <DataListCell key="excellent">
-                      <span id="item-excellent">
-                        Excellent is under {minutes - 1} minutes
-                      </span>
+                      Excellent is under {minutes - 1} minutes
                     </DataListCell>,
                     <DataListCell key="objective">
                       Objective is under {minutes + 1} minutes
