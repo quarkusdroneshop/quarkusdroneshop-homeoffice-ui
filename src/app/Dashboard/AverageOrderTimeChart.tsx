@@ -14,7 +14,7 @@ import { gql } from '@apollo/client';
 import client from 'src/apolloclient';
 
 type State = {
-  averageOrderUpTime: number; // 秒
+  averageOrderUpTime: number; // ★ ミリ秒
 };
 
 export class AverageOrderTimeChart extends React.Component<{}, State> {
@@ -24,7 +24,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
   constructor(props: {}) {
     super(props);
     this.state = {
-      averageOrderUpTime: 0, // 秒
+      averageOrderUpTime: 0, // ★ ミリ秒
     };
     this.loadGraphqlData = this.loadGraphqlData.bind(this);
   }
@@ -67,9 +67,8 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
         const timeMs = response?.data?.averageOrderUpTime;
 
         if (typeof timeMs === 'number') {
-          // ★ ミリ秒 → 秒
-          const timeSeconds = Math.round(timeMs / 1000);
-          this.setState({ averageOrderUpTime: timeSeconds });
+          // ★ 変換しない（ミリ秒のまま）
+          this.setState({ averageOrderUpTime: timeMs });
         }
       })
       .catch((error) => {
@@ -79,53 +78,57 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
 
   render() {
     const { averageOrderUpTime } = this.state;
-  
-    const minutes = Math.floor(averageOrderUpTime / 60);
-    const seconds = averageOrderUpTime % 60;
-  
-    const lowerRange = Math.max(0, averageOrderUpTime - 60);
-    const upperRange = averageOrderUpTime + 60;
-  
-    // ★ 0 のときでもグラフを描画させるための表示用値
+
+    // 表示用（0ms対策）
     const displayValue = Math.max(1, averageOrderUpTime);
-  
+
+    // 人間向け表示
+    const minutes = Math.floor(averageOrderUpTime / 1000 / 60);
+    const seconds = Math.floor((averageOrderUpTime / 1000) % 60);
+
+    const lowerRange = Math.max(0, averageOrderUpTime - 60_000);
+    const upperRange = averageOrderUpTime + 60_000;
+
     return (
       <Card isHoverable>
         <CardTitle>
           Average OrderUp Time: {minutes} min {seconds} sec
+          （{averageOrderUpTime} ms）
         </CardTitle>
-  
+
         <CardBody>
           <div style={{ height: '172px', width: '550px' }}>
             <ChartBullet
               ariaDesc="Order processing performance"
-              ariaTitle="Average OrderUp Time"
+              ariaTitle="Average OrderUp Time (ms)"
               constrainToVisibleArea
               height={172}
               width={550}
-              maxDomain={{ y: 300 }}
-  
+
+              // ★ 300秒 = 300,000ms
+              maxDomain={{ y: 300_000 }}
+
               primarySegmentedMeasureData={[
                 { name: 'Current', y: displayValue },
               ]}
-  
+
               comparativeWarningMeasureData={[
-                { name: 'Warning', y: 200 },
+                { name: 'Warning', y: 200_000 },
               ]}
-  
+
               comparativeErrorMeasureData={[
-                { name: 'Critical', y: 300 },
+                { name: 'Critical', y: 300_000 },
               ]}
-  
+
               qualitativeRangeData={[
                 { name: 'Lower Range', y: lowerRange },
                 { name: 'Upper Range', y: upperRange },
               ]}
-  
-              labels={({ datum }) => `${datum.name}: ${datum.y}s`}
+
+              labels={({ datum }) => `${datum.name}: ${datum.y} ms`}
             />
           </div>
-  
+
           <DataList aria-label="Performance Benchmarks" isCompact>
             <DataListItem>
               <DataListItemRow>
