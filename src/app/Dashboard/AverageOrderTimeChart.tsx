@@ -14,17 +14,16 @@ import { gql } from '@apollo/client';
 import client from 'src/apolloclient';
 
 type State = {
-  averageOrderUpTime: number; // ★ ミリ秒
+  averageOrderUpTime: number; // ms
 };
 
 export class AverageOrderTimeChart extends React.Component<{}, State> {
-
   private intervalId: number | null = null;
 
   constructor(props: {}) {
     super(props);
     this.state = {
-      averageOrderUpTime: 0, // ★ ミリ秒
+      averageOrderUpTime: 0,
     };
     this.loadGraphqlData = this.loadGraphqlData.bind(this);
   }
@@ -65,9 +64,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
       })
       .then((response) => {
         const timeMs = response?.data?.averageOrderUpTime;
-
         if (typeof timeMs === 'number') {
-          // ★ 変換しない（ミリ秒のまま）
           this.setState({ averageOrderUpTime: timeMs });
         }
       })
@@ -79,21 +76,23 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
   render() {
     const { averageOrderUpTime } = this.state;
 
-    // 表示用（0ms対策）
-    const displayValue = Math.max(1, averageOrderUpTime);
+    // 0ms 対策（ChartBullet は 0 を描画しない）
+    const displayValue =
+      typeof averageOrderUpTime === 'number' && averageOrderUpTime > 0
+        ? averageOrderUpTime
+        : 1;
 
-    // 人間向け表示
+    // 表示用
     const minutes = Math.floor(averageOrderUpTime / 1000 / 60);
     const seconds = Math.floor((averageOrderUpTime / 1000) % 60);
 
-    const lowerRange = Math.max(0, averageOrderUpTime - 60_000);
-    const upperRange = averageOrderUpTime + 60_000;
+    // デバッグ用（必要なら）
+    console.log('averageOrderUpTime(ms)=', averageOrderUpTime);
 
     return (
       <Card isHoverable>
         <CardTitle>
-          Average OrderUp Time: {minutes} min {seconds} sec
-          （{averageOrderUpTime} ms）
+          Average OrderUp Time: {minutes} min {seconds} sec（{averageOrderUpTime} ms）
         </CardTitle>
 
         <CardBody>
@@ -104,8 +103,6 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               constrainToVisibleArea
               height={172}
               width={550}
-
-              // ★ 300秒 = 300,000ms
               maxDomain={{ y: 300_000 }}
 
               primarySegmentedMeasureData={[
@@ -121,8 +118,9 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               ]}
 
               qualitativeRangeData={[
-                { name: 'Lower Range', y: lowerRange },
-                { name: 'Upper Range', y: upperRange },
+                { name: 'Good', y: 100_000 },
+                { name: 'OK', y: 200_000 },
+                { name: 'Bad', y: 300_000 },
               ]}
 
               labels={({ datum }) => `${datum.name}: ${datum.y} ms`}
