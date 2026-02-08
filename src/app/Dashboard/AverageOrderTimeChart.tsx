@@ -97,34 +97,36 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
 
         <CardBody>
           <div style={{ height: '172px', width: '550px' }}>
-            <ChartBullet
-              ariaDesc="Order processing performance"
-              ariaTitle="Average OrderUp Time (ms)"
-              constrainToVisibleArea
-              height={172}
-              width={550}
-              maxDomain={{ y: 300_000 }}
+          <ChartBullet
+            ariaDesc="Order processing performance"
+            ariaTitle="Average OrderUp Time (ms)"
+            constrainToVisibleArea
+            height={172}
+            width={550}
 
-              primarySegmentedMeasureData={[
-                { name: 'Current', y: displayValue },
-              ]}
+            minDomain={{ y: 0 }}
+            maxDomain={{ y: 300_000 }}
 
-              comparativeWarningMeasureData={[
-                { name: 'Warning', y: 200_000 },
-              ]}
+            primaryMeasureData={[
+              { name: 'Current', y: displayValue },
+            ]}
 
-              comparativeErrorMeasureData={[
-                { name: 'Critical', y: 300_000 },
-              ]}
+            comparativeWarningMeasureData={[
+              { name: 'Warning', y: 200_000 },
+            ]}
 
-              qualitativeRangeData={[
-                { name: 'Good', y: 100_000 },
-                { name: 'OK', y: 200_000 },
-                { name: 'Bad', y: 300_000 },
-              ]}
+            comparativeErrorMeasureData={[
+              { name: 'Critical', y: 300_000 },
+            ]}
 
-              labels={({ datum }) => `${datum.name}: ${datum.y} ms`}
-            />
+            qualitativeRangeData={[
+              { name: 'Good', y: 100_000 },
+              { name: 'OK', y: 200_000 },
+              { name: 'Bad', y: 300_000 },
+            ]}
+
+            labels={({ datum }) => `${datum.name}: ${datum.y} ms`}
+          />
           </div>
 
           <DataList aria-label="Performance Benchmarks" isCompact>
