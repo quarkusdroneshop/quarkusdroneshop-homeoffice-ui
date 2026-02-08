@@ -100,7 +100,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               constrainToVisibleArea
               height={172}
               width={550}
-              maxDomain={{ y: 300 }}   {/* 300秒 = 5分 */}
+              maxDomain={{ y: 300 }}
 
               primarySegmentedMeasureData={[
                 { name: 'Current', y: averageOrderUpTime },
