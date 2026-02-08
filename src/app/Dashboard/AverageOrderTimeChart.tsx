@@ -79,19 +79,22 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
 
   render() {
     const { averageOrderUpTime } = this.state;
-
+  
     const minutes = Math.floor(averageOrderUpTime / 60);
     const seconds = averageOrderUpTime % 60;
-
+  
     const lowerRange = Math.max(0, averageOrderUpTime - 60);
     const upperRange = averageOrderUpTime + 60;
-
+  
+    // ★ 0 のときでもグラフを描画させるための表示用値
+    const displayValue = Math.max(1, averageOrderUpTime);
+  
     return (
       <Card isHoverable>
         <CardTitle>
           Average OrderUp Time: {minutes} min {seconds} sec
         </CardTitle>
-
+  
         <CardBody>
           <div style={{ height: '172px', width: '550px' }}>
             <ChartBullet
@@ -101,28 +104,28 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               height={172}
               width={550}
               maxDomain={{ y: 300 }}
-
+  
               primarySegmentedMeasureData={[
-                { name: 'Current', y: averageOrderUpTime },
+                { name: 'Current', y: displayValue },
               ]}
-
+  
               comparativeWarningMeasureData={[
                 { name: 'Warning', y: 200 },
               ]}
-
+  
               comparativeErrorMeasureData={[
                 { name: 'Critical', y: 300 },
               ]}
-
+  
               qualitativeRangeData={[
                 { name: 'Lower Range', y: lowerRange },
                 { name: 'Upper Range', y: upperRange },
               ]}
-
+  
               labels={({ datum }) => `${datum.name}: ${datum.y}s`}
             />
           </div>
-
+  
           <DataList aria-label="Performance Benchmarks" isCompact>
             <DataListItem>
               <DataListItemRow>
