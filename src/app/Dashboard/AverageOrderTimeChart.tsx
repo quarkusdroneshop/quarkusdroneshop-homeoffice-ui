@@ -27,7 +27,6 @@ function formatDuration(ms: number): string {
   const totalMinutes = Math.floor(totalSeconds / 60);
   const totalHours = Math.floor(totalMinutes / 60);
   const days = Math.floor(totalHours / 24);
-
   const hours = totalHours % 24;
   const minutes = totalMinutes % 60;
 
@@ -35,6 +34,11 @@ function formatDuration(ms: number): string {
   if (hours > 0) return `${hours}h ${minutes}m`;
   return `${minutes}m`;
 }
+
+// ===== 時間定数 =====
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+const MAX_7_DAYS = 7 * DAY;
 
 export class AverageOrderTimeChart extends React.Component<{}, State> {
   private intervalId: number | null = null;
@@ -97,11 +101,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
 
     // ChartBullet は 0 を描画しないため
     const displayValue = averageOrderUpTime > 0 ? averageOrderUpTime : 1;
-
     const formattedTime = formatDuration(averageOrderUpTime);
-
-    // デバッグ用
-    console.log('averageOrderUpTime(ms)=', averageOrderUpTime);
 
     return (
       <Card isHoverable>
@@ -120,25 +120,26 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               constrainToVisibleArea
               height={172}
               width={550}
+
               minDomain={{ y: 0 }}
-              maxDomain={{ y: 300_000 }}
+              maxDomain={{ y: MAX_7_DAYS }}
 
               primaryMeasureData={[
                 { name: 'Current', y: displayValue },
               ]}
 
               comparativeWarningMeasureData={[
-                { name: 'Warning', y: 200_000 },
+                { name: 'Warning', y: 3 * DAY },
               ]}
 
               comparativeErrorMeasureData={[
-                { name: 'Critical', y: 300_000 },
+                { name: 'Critical', y: 7 * DAY },
               ]}
 
               qualitativeRangeData={[
-                { name: 'Good', y: 100_000 },
-                { name: 'OK', y: 200_000 },
-                { name: 'Bad', y: 300_000 },
+                { name: 'Good', y: 1 * DAY },
+                { name: 'OK', y: 3 * DAY },
+                { name: 'Bad', y: 7 * DAY },
               ]}
 
               labels={({ datum }) =>
@@ -153,10 +154,10 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
                 <DataListItemCells
                   dataListCells={[
                     <DataListCell key="excellent">
-                      Excellent: under 1h
+                      Excellent: under 1 day
                     </DataListCell>,
                     <DataListCell key="objective">
-                      Objective: under 2h
+                      Objective: under 3 days
                     </DataListCell>,
                   ]}
                 />
