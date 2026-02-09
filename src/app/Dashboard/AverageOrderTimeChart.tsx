@@ -56,7 +56,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
       clearInterval(this.intervalId);
     }
   }
-  
+
   loadGraphqlData() {
     const end = new Date();
     const endDateString = end.toISOString().slice(0, 10);
