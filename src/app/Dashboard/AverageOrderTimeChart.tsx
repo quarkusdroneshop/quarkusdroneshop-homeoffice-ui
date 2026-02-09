@@ -95,16 +95,14 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
           Average OrderUp Time: {minutes} min {seconds} sec（{averageOrderUpTime} ms）
         </CardTitle>
 
-        <CardBody>
-          <div style={{ height: '172px', width: '550px' }}>
-          <ChartBullet
+        <ChartBullet
             ariaDesc="Order processing performance"
             ariaTitle="Average OrderUp Time (ms)"
             constrainToVisibleArea
             height={172}
             width={550}
 
-            domain={{ y: [0, 300_000] }}   // ★ ここが重要
+            domain={{ y: [0, 300_000] }}
 
             primaryMeasureData={[
               { name: 'Current', y: displayValue },
@@ -119,14 +117,13 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
             ]}
 
             qualitativeRangeData={[
-              { name: 'Good', y: 100_000 },
-              { name: 'OK', y: 200_000 },
               { name: 'Bad', y: 300_000 },
+              { name: 'OK', y: 200_000 },
+              { name: 'Good', y: 100_000 },
             ]}
 
             labels={({ datum }) => `${datum.name}: ${datum.y} ms`}
           />
-          </div>
 
           <DataList aria-label="Performance Benchmarks" isCompact>
             <DataListItem>
