@@ -104,8 +104,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
             height={172}
             width={550}
 
-            minDomain={{ y: 0 }}
-            maxDomain={{ y: 300_000 }}
+            domain={{ y: [0, 300_000] }}   // ★ ここが重要
 
             primaryMeasureData={[
               { name: 'Current', y: displayValue },
