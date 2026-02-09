@@ -141,7 +141,6 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               </DataListItemRow>
             </DataListItem>
           </DataList>
-        </CardBody>
       </Card>
     );
   }
