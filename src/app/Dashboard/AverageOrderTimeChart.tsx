@@ -17,24 +17,6 @@ type State = {
   averageOrderUpTime: number; // ms
 };
 
-/**
- * 表示専用：ms → Day / Hours / Minutes
- */
-function formatDuration(ms: number): string {
-  if (!ms || ms <= 0) return '0m';
-
-  const totalSeconds = Math.floor(ms / 1000);
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  const totalHours = Math.floor(totalMinutes / 60);
-  const days = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
-  const minutes = totalMinutes % 60;
-
-  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
-}
-
 export class AverageOrderTimeChart extends React.Component<{}, State> {
   private intervalId: number | null = null;
 
@@ -94,56 +76,57 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
   render() {
     const { averageOrderUpTime } = this.state;
 
-    // ChartBullet は 0 を描画しないため
-    const displayValue = averageOrderUpTime > 0 ? averageOrderUpTime : 1;
+    // 0ms 対策（ChartBullet は 0 を描画しない）
+    const displayValue =
+      typeof averageOrderUpTime === 'number' && averageOrderUpTime > 0
+        ? averageOrderUpTime
+        : 1;
 
-    const formattedTime = formatDuration(averageOrderUpTime);
+    // 表示用
+    const minutes = Math.floor(averageOrderUpTime / 1000 / 60);
+    const seconds = Math.floor((averageOrderUpTime / 1000) % 60);
 
-    // デバッグ用
+    // デバッグ用（必要なら）
     console.log('averageOrderUpTime(ms)=', averageOrderUpTime);
 
     return (
       <Card isHoverable>
         <CardTitle>
-          Average OrderUp Time: {formattedTime}
-          <span style={{ marginLeft: '8px', color: '#6a6e73', fontSize: 'smaller' }}>
-            ({averageOrderUpTime} ms)
-          </span>
+          Average OrderUp Time: {minutes} min {seconds} sec（{averageOrderUpTime} ms）
         </CardTitle>
 
         <CardBody>
           <div style={{ height: '172px', width: '550px' }}>
-            <ChartBullet
-              ariaDesc="Order processing performance"
-              ariaTitle="Average OrderUp Time"
-              constrainToVisibleArea
-              height={172}
-              width={550}
-              minDomain={{ y: 0 }}
-              maxDomain={{ y: 300_000 }}
+          <ChartBullet
+            ariaDesc="Order processing performance"
+            ariaTitle="Average OrderUp Time (ms)"
+            constrainToVisibleArea
+            height={172}
+            width={550}
 
-              primaryMeasureData={[
-                { name: 'Current', y: displayValue },
-              ]}
+            minDomain={{ y: 0 }}
+            maxDomain={{ y: 300_000 }}
 
-              comparativeWarningMeasureData={[
-                { name: 'Warning', y: 200_000 },
-              ]}
+            primaryMeasureData={[
+              { name: 'Current', y: displayValue },
+            ]}
 
-              comparativeErrorMeasureData={[
-                { name: 'Critical', y: 300_000 },
-              ]}
+            comparativeWarningMeasureData={[
+              { name: 'Warning', y: 200_000 },
+            ]}
 
-              qualitativeRangeData={[
-                { name: 'Good', y: 100_000 },
-                { name: 'OK', y: 200_000 },
-                { name: 'Bad', y: 300_000 },
-              ]}
+            comparativeErrorMeasureData={[
+              { name: 'Critical', y: 300_000 },
+            ]}
 
-              labels={({ datum }) =>
-                `${datum.name}: ${formatDuration(datum.y)}`
-              }
-            />
+            qualitativeRangeData={[
+              { name: 'Good', y: 100_000 },
+              { name: 'OK', y: 200_000 },
+              { name: 'Bad', y: 300_000 },
+            ]}
+
+            labels={({ datum }) => `${datum.name}: ${datum.y} ms`}
+          />
           </div>
 
           <DataList aria-label="Performance Benchmarks" isCompact>
@@ -152,10 +135,10 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
                 <DataListItemCells
                   dataListCells={[
                     <DataListCell key="excellent">
-                      Excellent: under 1h
+                      Excellent is under {Math.max(0, minutes - 1)} minutes
                     </DataListCell>,
                     <DataListCell key="objective">
-                      Objective: under 2h
+                      Objective is under {minutes + 1} minutes
                     </DataListCell>,
                   ]}
                 />
