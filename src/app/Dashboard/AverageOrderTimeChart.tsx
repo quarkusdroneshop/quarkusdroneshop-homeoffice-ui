@@ -35,11 +35,6 @@ function formatDuration(ms: number): string {
   return `${minutes}m`;
 }
 
-// ===== 時間定数 =====
-const HOUR = 60 * 60 * 1000;
-const DAY = 24 * HOUR;
-const MAX_7_DAYS = 7 * DAY;
-
 export class AverageOrderTimeChart extends React.Component<{}, State> {
   private intervalId: number | null = null;
 
@@ -101,7 +96,11 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
 
     // ChartBullet は 0 を描画しないため
     const displayValue = averageOrderUpTime > 0 ? averageOrderUpTime : 1;
+
     const formattedTime = formatDuration(averageOrderUpTime);
+
+    // デバッグ用
+    console.log('averageOrderUpTime(ms)=', averageOrderUpTime);
 
     return (
       <Card isHoverable>
@@ -120,26 +119,25 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               constrainToVisibleArea
               height={172}
               width={550}
-
               minDomain={{ y: 0 }}
-              maxDomain={{ y: MAX_7_DAYS }}
+              maxDomain={{ y: 300_000 }}
 
               primaryMeasureData={[
                 { name: 'Current', y: displayValue },
               ]}
 
               comparativeWarningMeasureData={[
-                { name: 'Warning', y: 3 * DAY },
+                { name: 'Warning', y: 200_000 },
               ]}
 
               comparativeErrorMeasureData={[
-                { name: 'Critical', y: 7 * DAY },
+                { name: 'Critical', y: 300_000 },
               ]}
 
               qualitativeRangeData={[
-                { name: 'Good', y: 1 * DAY },
-                { name: 'OK', y: 3 * DAY },
-                { name: 'Bad', y: 7 * DAY },
+                { name: 'Good', y: 100_000 },
+                { name: 'OK', y: 200_000 },
+                { name: 'Bad', y: 300_000 },
               ]}
 
               labels={({ datum }) =>
@@ -154,10 +152,10 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
                 <DataListItemCells
                   dataListCells={[
                     <DataListCell key="excellent">
-                      Excellent: under 1 day
+                      Excellent: under 1h
                     </DataListCell>,
                     <DataListCell key="objective">
-                      Objective: under 3 days
+                      Objective: under 2h
                     </DataListCell>,
                   ]}
                 />
