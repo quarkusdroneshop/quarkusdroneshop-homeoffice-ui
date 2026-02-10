@@ -102,10 +102,10 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
             height={172}
             width={550}
 
-            domain={{ y: [0, 300_000] }}
+            domain={{ x: [0, 300_000] }}
 
             primaryMeasureData={[
-              { name: 'Current', y: displayValue },
+              { name: 'Current', x: displayValue },
             ]}
 
             comparativeWarningMeasureData={[
