@@ -96,35 +96,36 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
         </CardTitle>
 
         <ChartBullet
-            ariaDesc="Order processing performance"
-            ariaTitle="Average OrderUp Time (ms)"
-            constrainToVisibleArea
-            height={172}
-            width={550}
+          ariaDesc="Order processing performance"
+          ariaTitle="Average OrderUp Time (ms)"
+          constrainToVisibleArea
+          height={172}
+          width={550}
 
-            orientation="vertical"
-            domain={{ y: [0, 300_000] }}
+          orientation="vertical"
 
-            primaryMeasureData={[
-              { name: 'Current', y: averageOrderUpTime },
-            ]}
+          domain={{ x: [0, 300_000] }}
 
-            comparativeWarningMeasureData={[
-              { name: 'Warning', y: 200_000 },
-            ]}
+          primaryMeasureData={[
+            { name: 'Current', x: displayValue },
+          ]}
 
-            comparativeErrorMeasureData={[
-              { name: 'Critical', y: 300_000 },
-            ]}
+          comparativeWarningMeasureData={[
+            { name: 'Warning', x: 200_000 },
+          ]}
 
-            qualitativeRangeData={[
-              { name: 'Bad', y: 300_000 },
-              { name: 'OK', y: 200_000 },
-              { name: 'Good', y: 100_000 },
-            ]}
+          comparativeErrorMeasureData={[
+            { name: 'Critical', x: 300_000 },
+          ]}
 
-            labels={({ datum }) => `${datum.name}: ${datum.y} ms`}
-          />
+          qualitativeRangeData={[
+            { name: 'Bad', x: 300_000 },
+            { name: 'OK', x: 200_000 },
+            { name: 'Good', x: 100_000 },
+          ]}
+
+          labels={({ datum }) => `${datum.name}: ${datum.x} ms`}
+        />
 
           <DataList aria-label="Performance Benchmarks" isCompact>
             <DataListItem>
