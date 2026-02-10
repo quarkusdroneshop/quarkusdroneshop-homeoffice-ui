@@ -106,7 +106,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
             domain={{ y: [0, 300_000] }}
 
             primaryMeasureData={[
-              { name: 'Current', y: displayValue },
+              { name: 'Current', y: averageOrderUpTime },
             ]}
 
             comparativeWarningMeasureData={[
