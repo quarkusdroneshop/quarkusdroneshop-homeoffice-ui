@@ -95,35 +95,35 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
         Average OrderUp Time: {minutes} min {seconds} sec（{averageOrderUpTime} ms）
       </CardTitle>
       <CardBody>
-      <ChartBullet
-        ariaDesc="Order processing performance"
-        ariaTitle="Average OrderUp Time (ms)"
-        height={172}
-        width={550}
+          <ChartBullet
+            ariaDesc="Order processing performance"
+            ariaTitle="Average OrderUp Time (ms)"
+            height={172}
+            width={550}
 
-        minDomain={{ y: 0 }}
-        maxDomain={{ y: 300_000 }}
-      
-        primaryMeasureData={[
-          { name: 'Current', y: 15_000 },
-        ]}
-      
-        comparativeWarningMeasureData={[
-          { name: 'Warning', y: 200_000 },
-        ]}
-      
-        comparativeErrorMeasureData={[
-          { name: 'Critical', y: 300_000 },
-        ]}
-      
-        qualitativeRangeData={[
-          { name: 'Bad', y: 300_000 },
-          { name: 'OK', y: 200_000 },
-          { name: 'Good', y: 100_000 },
-        ]}
-      
-        labels={({ datum }) => `${datum.name}: ${datum.x} ms`}
-      />
+            minDomain={{ y: 0 }}
+            maxDomain={{ y: 300_000 }}
+          
+            comparativeWarningMeasureData={[
+              { name: 'Warning', y: 200_000 },
+            ]}
+          
+            comparativeErrorMeasureData={[
+              { name: 'Critical', y: 300_000 },
+            ]}
+          
+            qualitativeRangeData={[
+              { name: 'Bad', y: 300_000 },
+              { name: 'OK', y: 200_000 },
+              { name: 'Good', y: 100_000 },
+            ]}
+
+            primaryMeasureData={[
+              { name: 'Current', y: 15_000 },
+            ]}
+          
+            labels={({ datum }) => `${datum.name}: ${datum.x} ms`}
+          />
 
           <DataList aria-label="Performance Benchmarks" isCompact>
             <DataListItem>
@@ -141,6 +141,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               </DataListItemRow>
             </DataListItem>
           </DataList>
+
         </CardBody>
       </Card>
     );
