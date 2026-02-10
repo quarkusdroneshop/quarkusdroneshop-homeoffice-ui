@@ -83,8 +83,8 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
         : 1;
 
     // 表示用
-    const days = Math.floor(averageOrderUpTime / 1000 / 60);
-    const hours = Math.floor((averageOrderUpTime / 1000) % 60);
+    const minutes = Math.floor(averageOrderUpTime / 1000 / 60);
+    const seconds = Math.floor((averageOrderUpTime / 1000) % 60);
 
     // デバッグ用（必要なら）
     console.log('averageOrderUpTime(ms)=', averageOrderUpTime);
@@ -92,12 +92,12 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
     return (
     <Card isHoverable>
       <CardTitle>
-        Average OrderUp Time: {days} min {hours} 
+        Average OrderUp Time: {minutes} day {seconds} hours
       </CardTitle>
       <CardBody>
           <ChartBullet
             ariaDesc="Order processing performance"
-            ariaTitle="Average OrderUp Time"
+            ariaTitle="Average OrderUp Time (ms)"
             height={172}
             width={550}
 
@@ -122,7 +122,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               { name: 'Good', y: 100 }
             ]}
           
-            labels={({ datum }) => `${datum.name}: ${datum.x} hours`}
+            labels={({ datum }) => `${datum.name}: ${datum.x} ms`}
           />
 
           <DataList aria-label="Performance Benchmarks" isCompact>
@@ -131,10 +131,10 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
                 <DataListItemCells
                   dataListCells={[
                     <DataListCell key="excellent">
-                      Excellent is under {Math.max(0, hours - 1)} hours
+                      Excellent is under {Math.max(0, minutes - 1)} minutes
                     </DataListCell>,
                     <DataListCell key="objective">
-                      Objective is under {hours + 1} hours
+                      Objective is under {minutes + 1} minutes
                     </DataListCell>,
                   ]}
                 />
