@@ -83,8 +83,8 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
         : 1;
 
     // 表示用
-    const minutes = Math.floor(averageOrderUpTime / 60);
-    const seconds = Math.floor(averageOrderUpTime % 60);
+    const days = Math.floor(averageOrderUpTime / 60);
+    const hours = Math.floor(averageOrderUpTime % 60);
 
     // デバッグ用（必要なら）
     console.log('averageOrderUpTime=', averageOrderUpTime);
@@ -92,7 +92,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
     return (
     <Card isHoverable>
       <CardTitle>
-        Average OrderUp Time: {minutes} days {seconds} hours
+        Average OrderUp Time: {days} days {hours} hours
       </CardTitle>
       <CardBody>
           <ChartBullet
@@ -131,10 +131,10 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
                 <DataListItemCells
                   dataListCells={[
                     <DataListCell key="excellent">
-                      Excellent is under {Math.max(0, minutes - 1)} hours
+                      Excellent is under {Math.max(0, hours - 1)} hours
                     </DataListCell>,
                     <DataListCell key="objective">
-                      Objective is under {minutes + 1} hours
+                      Objective is under {hours + 1} hours
                     </DataListCell>,
                   ]}
                 />
