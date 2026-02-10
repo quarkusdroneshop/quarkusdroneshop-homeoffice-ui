@@ -92,7 +92,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
     return (
     <Card isHoverable>
       <CardTitle>
-        Average OrderUp Time: {minutes} day {seconds} hours
+        Average OrderUp Time: {minutes} min {seconds} sec（{averageOrderUpTime} ms）
       </CardTitle>
       <CardBody>
           <ChartBullet
