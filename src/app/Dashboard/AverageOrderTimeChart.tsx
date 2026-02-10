@@ -83,8 +83,8 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
         : 1;
 
     // 表示用
-    const minutes = Math.floor(averageOrderUpTime / 1000 / 60);
-    const seconds = Math.floor((averageOrderUpTime / 1000) % 60);
+    const days = Math.floor(averageOrderUpTime / 1000 / 60);
+    const hours = Math.floor((averageOrderUpTime / 1000) % 60);
 
     // デバッグ用（必要なら）
     console.log('averageOrderUpTime(ms)=', averageOrderUpTime);
@@ -92,12 +92,12 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
     return (
     <Card isHoverable>
       <CardTitle>
-        Average OrderUp Time: {minutes} min {seconds} sec（{averageOrderUpTime} ms）
+        Average OrderUp Time: {days} min {hours} 
       </CardTitle>
       <CardBody>
           <ChartBullet
             ariaDesc="Order processing performance"
-            ariaTitle="Average OrderUp Time (ms)"
+            ariaTitle="Average OrderUp Time"
             height={172}
             width={550}
 
@@ -117,12 +117,12 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
             ]}
           
             qualitativeRangeData={[
-              { name: 'Bad', y: 280 },
+              { name: 'Bad', y: 350 },
               { name: 'OK', y: 150 },
               { name: 'Good', y: 100 }
             ]}
           
-            labels={({ datum }) => `${datum.name}: ${datum.x} ms`}
+            labels={({ datum }) => `${datum.name}: ${datum.x} hours`}
           />
 
           <DataList aria-label="Performance Benchmarks" isCompact>
@@ -131,10 +131,10 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
                 <DataListItemCells
                   dataListCells={[
                     <DataListCell key="excellent">
-                      Excellent is under {Math.max(0, minutes - 1)} minutes
+                      Excellent is under {Math.max(0, hours - 1)} hours
                     </DataListCell>,
                     <DataListCell key="objective">
-                      Objective is under {minutes + 1} minutes
+                      Objective is under {hours + 1} hours
                     </DataListCell>,
                   ]}
                 />
