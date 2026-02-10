@@ -84,7 +84,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
 
     // 表示用
     const minutes = Math.floor(averageOrderUpTime / 60);
-    const seconds = Math.floor((averageOrderUpTime) % 60);
+    const seconds = Math.floor(averageOrderUpTime % 60);
 
     // デバッグ用（必要なら）
     console.log('averageOrderUpTime(ms)=', averageOrderUpTime);
@@ -92,7 +92,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
     return (
     <Card isHoverable>
       <CardTitle>
-        Average OrderUp Time: {minutes} min {seconds} sec（{averageOrderUpTime} ms）
+        Average OrderUp Time: {minutes} days {seconds} sec（{averageOrderUpTime} minutes）
       </CardTitle>
       <CardBody>
           <ChartBullet
