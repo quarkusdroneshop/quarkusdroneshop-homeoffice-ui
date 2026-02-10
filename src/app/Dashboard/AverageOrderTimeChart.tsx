@@ -119,7 +119,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
             ]}
 
             primaryMeasureData={[
-              { name: 'Current', y: 15_000 },
+              { name: 'Current', x: 100 },
             ]}
           
             labels={({ datum }) => `${datum.name}: ${datum.x} ms`}
