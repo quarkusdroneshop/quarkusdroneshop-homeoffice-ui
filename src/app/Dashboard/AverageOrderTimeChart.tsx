@@ -103,6 +103,10 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
 
             minDomain={{ x: 0 }}
             maxDomain={{ x: 300_000 }}
+
+            primaryMeasureData={[
+              { name: 'Current', x: 10000 },
+            ]}
           
             comparativeWarningMeasureData={[
               { name: 'Warning', y: 200_000 },
@@ -116,10 +120,6 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               { name: 'Bad', y: 300_000 },
               { name: 'OK', y: 200_000 },
               { name: 'Good', y: 100_000 },
-            ]}
-
-            primaryMeasureData={[
-              { name: 'Current', x: 100 },
             ]}
           
             labels={({ datum }) => `${datum.name}: ${datum.x} ms`}
