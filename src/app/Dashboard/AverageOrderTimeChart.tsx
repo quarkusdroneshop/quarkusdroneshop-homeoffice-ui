@@ -14,7 +14,7 @@ import { gql } from '@apollo/client';
 import client from 'src/apolloclient';
 
 type State = {
-  averageOrderUpTime: number; // ms
+  averageOrderUpTime: number;
 };
 
 export class AverageOrderTimeChart extends React.Component<{}, State> {
@@ -83,8 +83,8 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
         : 1;
 
     // 表示用
-    const minutes = Math.floor(averageOrderUpTime / 1000 / 60);
-    const seconds = Math.floor((averageOrderUpTime / 1000) % 60);
+    const minutes = Math.floor(averageOrderUpTime / 60);
+    const seconds = Math.floor((averageOrderUpTime) % 60);
 
     // デバッグ用（必要なら）
     console.log('averageOrderUpTime(ms)=', averageOrderUpTime);
