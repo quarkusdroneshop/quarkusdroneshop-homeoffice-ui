@@ -90,42 +90,41 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
     console.log('averageOrderUpTime(ms)=', averageOrderUpTime);
 
     return (
-      <Card isHoverable>
-        <CardTitle>
-          Average OrderUp Time: {minutes} min {seconds} sec（{averageOrderUpTime} ms）
-        </CardTitle>
-
+    <Card isHoverable>
+      <CardTitle>
+        Average OrderUp Time: {minutes} min {seconds} sec（{averageOrderUpTime} ms）
+      </CardTitle>
+      <CardBody>
         <ChartBullet
-          ariaDesc="Order processing performance"
-          ariaTitle="Average OrderUp Time (ms)"
-          constrainToVisibleArea
-          height={172}
-          width={550}
+            ariaDesc="Order processing performance"
+            ariaTitle="Average OrderUp Time (ms)"
+            constrainToVisibleArea
+            height={172}
+            width={550}
 
-          orientation="vertical"
+            orientation="vertical"
+            domain={{ x: [0, 300_000] }}
 
-          domain={{ x: [0, 300_000] }}
+            primaryMeasureData={[
+              { name: 'Current', x: averageOrderUpTime },
+            ]}
 
-          primaryMeasureData={[
-            { name: 'Current', x: displayValue },
-          ]}
+            comparativeWarningMeasureData={[
+              { name: 'Warning', x: 200_000 },
+            ]}
 
-          comparativeWarningMeasureData={[
-            { name: 'Warning', x: 200_000 },
-          ]}
+            comparativeErrorMeasureData={[
+              { name: 'Critical', x: 300_000 },
+            ]}
 
-          comparativeErrorMeasureData={[
-            { name: 'Critical', x: 300_000 },
-          ]}
+            qualitativeRangeData={[
+              { name: 'Bad', x: 300_000 },
+              { name: 'OK', x: 200_000 },
+              { name: 'Good', x: 100_000 },
+            ]}
 
-          qualitativeRangeData={[
-            { name: 'Bad', x: 300_000 },
-            { name: 'OK', x: 200_000 },
-            { name: 'Good', x: 100_000 },
-          ]}
-
-          labels={({ datum }) => `${datum.name}: ${datum.x} ms`}
-        />
+            labels={({ datum }) => `${datum.name}: ${datum.y} ms`}
+          />
 
           <DataList aria-label="Performance Benchmarks" isCompact>
             <DataListItem>
@@ -143,6 +142,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               </DataListItemRow>
             </DataListItem>
           </DataList>
+        </CardBody>
       </Card>
     );
   }
