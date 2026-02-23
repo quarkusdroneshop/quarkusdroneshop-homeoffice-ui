@@ -97,7 +97,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
       <CardBody>
           <ChartBullet
             ariaDesc="Order processing performance"
-            ariaTitle="Average OrderUp Time"
+            ariaTitle="Average Shipping Time"
             height={172}
             width={550}
 
