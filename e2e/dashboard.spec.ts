@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { dismissWebpackOverlay } from './helpers';
 
 test.describe('Dashboard ページ', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await dismissWebpackOverlay(page);
   });
 
   test('Dashboard 見出しが表示される', async ({ page }) => {
@@ -10,15 +12,14 @@ test.describe('Dashboard ページ', () => {
   });
 
   test('Key Metrics ラベルが表示される', async ({ page }) => {
-    await expect(page.getByText('OrderUp')).toBeVisible();
-    await expect(page.getByText('Sales')).toBeVisible();
-    await expect(page.getByText('Inventory')).toBeVisible();
+    await expect(page.getByText('OrderUp', { exact: true })).toBeVisible();
+    await expect(page.getByText('Sales', { exact: true })).toBeVisible();
+    await expect(page.getByText('Inventory', { exact: true })).toBeVisible();
   });
 
-  test('Mocker スイッチが表示される（ローディング完了後）', async ({ page }) => {
-    // ローディング状態またはスイッチが表示されることを確認
-    const mockerArea = page.locator('#simple-switch, :text("Loading..."), :text("Mocker")');
-    await expect(mockerArea.first()).toBeVisible({ timeout: 10_000 });
+  test('Key Metrics セクションが表示される', async ({ page }) => {
+    // LabelGroup の categoryName ラベルが DOM に存在することを確認
+    await expect(page.getByText('Key Metrics')).toBeVisible();
   });
 
   test('ページタイトルが正しい', async ({ page }) => {

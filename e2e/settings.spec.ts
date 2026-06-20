@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { dismissWebpackOverlay } from './helpers';
 
 test.describe('Settings ページ', () => {
   const openSettings = async (page: any) => {
     await page.goto('/');
+    await dismissWebpackOverlay(page);
     await page.getByText('Settings').click();
   };
 

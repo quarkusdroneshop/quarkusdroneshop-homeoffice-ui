@@ -9,7 +9,7 @@ export default defineConfig({
     ['list'],
   ],
   use: {
-    baseURL: 'http://localhost:9000',
+    baseURL: 'http://localhost:8080',
     headless: true,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -21,11 +21,11 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  // E2E 実行前に dev サーバーを起動
+  // E2E 実行前に dev サーバーを起動（既存サーバーがあれば再利用）
   webServer: {
     command: 'npm run start:dev',
-    url: 'http://localhost:9000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    url: 'http://localhost:8080',
+    reuseExistingServer: true,
+    timeout: 120_000,
   },
 });

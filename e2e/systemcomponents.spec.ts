@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { dismissWebpackOverlay } from './helpers';
 
 test.describe('System Components ページ', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/systemcomponents');
+    await dismissWebpackOverlay(page);
   });
 
   test('ページタイトルが正しい', async ({ page }) => {
@@ -23,7 +25,7 @@ test.describe('System Components ページ', () => {
   });
 
   test('QDCA10 コンポーネントが表示される', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'QDCA10' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'QDCA10', exact: true })).toBeVisible();
     await expect(page.getByText('makes drinks')).toBeVisible();
   });
 

@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { dismissWebpackOverlay } from './helpers';
 
 test.describe('ナビゲーション', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    await dismissWebpackOverlay(page);
   });
 
   test('ページタイトルが正しく設定される', async ({ page }) => {
@@ -56,6 +58,7 @@ test.describe('ナビゲーション', () => {
 
   test('存在しないURLにアクセスすると 404 ページが表示される', async ({ page }) => {
     await page.goto('/this-page-does-not-exist');
+    await dismissWebpackOverlay(page);
     await expect(page.getByText('404 Page not found')).toBeVisible();
     await expect(page.getByRole('button', { name: /take me home/i })).toBeVisible();
   });
@@ -70,7 +73,7 @@ test.describe('ナビゲーション', () => {
   });
 
   test('バージョン番号がヘッダーに表示される', async ({ page }) => {
-    const pkg = require('./package.json').version;
+    const pkg = require('../package.json').version;
     await expect(page.getByText(`Release ${pkg}`)).toBeVisible();
   });
 });
