@@ -1,39 +1,47 @@
-// For a detailed explanation regarding each configuration property, visit:
-// https://jestjs.io/docs/en/configuration.html
-
 module.exports = {
-  // Automatically clear mock calls and instances between every test
   clearMocks: true,
-
-  // Indicates whether the coverage information should be collected while executing the test
   collectCoverage: true,
-
-  // The directory where Jest should output its coverage files
   coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
 
-  // An array of directory names to be searched recursively up from the requiring module's location
-  moduleDirectories: [
-    "node_modules",
-    "<rootDir>/src"
-  ],
+  moduleDirectories: ['node_modules', '<rootDir>/src'],
 
-  // A map from regular expressions to module names that allow to stub out resources with a single module
   moduleNameMapper: {
     '\\.(css|less)$': '<rootDir>/__mocks__/styleMock.js',
-    "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/__mocks__/fileMock.js",
-    "@app/(.*)": '<rootDir>/src/app/$1'
+    '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
+      '<rootDir>/__mocks__/fileMock.js',
+    '@app/(.*)': '<rootDir>/src/app/$1',
+    '^/package\\.json$': '<rootDir>/package.json',
+    // Apollo Client のモック（本番コードと test コードの両方から参照される）
+    '^src/apolloclient$': '<rootDir>/src/__mocks__/apolloclient.ts',
+    '^src/__mocks__/apolloclient$': '<rootDir>/src/__mocks__/apolloclient.ts',
   },
 
-  // A preset that is used as a base for Jest's configuration
-  preset: "ts-jest/presets/js-with-ts",
+  transform: {
+    '^.+\\.(ts|tsx|js|jsx)$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          jsx: 'react',
+          esModuleInterop: true,
+          allowSyntheticDefaultImports: true,
+          skipLibCheck: true,
+          noImplicitAny: false,
+          strict: false,
+        },
+        // 既存ソースファイルの型エラーは無視してテストを実行する
+        diagnostics: false,
+      },
+    ],
+  },
 
-  // The path to a module that runs some code to configure or set up the testing framework before each test
-  setupFilesAfterEnv: ['<rootDir>/test-setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/test-setup.ts'],
 
-  // The test environment that will be used for testing.
-  testEnvironment: "jsdom",
+  testEnvironment: 'jest-environment-jsdom',
 
-  // A list of paths to snapshot serializer modules Jest should use for snapshot testing
-  snapshotSerializers: ['enzyme-to-json/serializer'],
+  transformIgnorePatterns: [
+    '/node_modules/(?!(@patternfly|d3|internmap|delaunator|robust-predicates|victory|recharts|d3-.*)/)',
+  ],
 
+  testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
 };

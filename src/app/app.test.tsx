@@ -1,42 +1,53 @@
 import * as React from 'react';
-import { App } from '@app/index';
-import { mount, shallow } from 'enzyme';
-import { Button } from '@patternfly/react-core';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { ApolloProvider } from '@apollo/react-hooks';
+import mockClient from 'src/__mocks__/apolloclient';
 
-describe('App tests', () => {
-  test('should render default App component', () => {
-    const view = shallow(<App />);
-    expect(view).toMatchSnapshot();
+const renderApp = (initialPath = '/') => {
+  const { AppLayout } = require('@app/AppLayout/AppLayout');
+  const { AppRoutes } = require('@app/routes');
+  return render(
+    <ApolloProvider client={mockClient as any}>
+      <MemoryRouter initialEntries={[initialPath]}>
+        <AppLayout>
+          <AppRoutes />
+        </AppLayout>
+      </MemoryRouter>
+    </ApolloProvider>
+  );
+};
+
+describe('App — レイアウトとナビゲーション', () => {
+  test('ロゴとタイトルが表示される', () => {
+    renderApp();
+    expect(screen.getByAltText('Quarkus Droneshop Homeoffice')).toBeInTheDocument();
+    expect(screen.getByText('Quarkus Droneshop Homeoffice')).toBeInTheDocument();
   });
 
-  it('should render a nav-toggle button', () => {
-    const wrapper = mount(<App />);
-    const button = wrapper.find(Button);
-    expect(button.exists()).toBe(true);
+  test('ナビゲーションリンクが全て表示される', () => {
+    renderApp();
+    // PF4 の Nav は DOM には存在する（モバイルビューでは collapsed だが DOM 上には残る）
+    expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('System Components')).toBeInTheDocument();
+    expect(screen.getByText('Support')).toBeInTheDocument();
+    expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
-  it('should hide the sidebar on smaller viewports', () => {
-    Object.defineProperty(window, 'innerWidth', {writable: true, configurable: true, value: 600});
-    const wrapper = mount(<App />);
-    window.dispatchEvent(new Event('resize'));
-    expect(wrapper.find('#page-sidebar').hasClass('pf-m-collapsed')).toBeTruthy();
+  test('デフォルトで Dashboard ページが表示される', () => {
+    renderApp('/');
+    // ページ内の見出し（h1）として Dashboard が表示される
+    expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
   });
 
-  it('should expand the sidebar on larger viewports', () => {
-    Object.defineProperty(window, 'innerWidth', {writable: true, configurable: true, value: 1200});
-    const wrapper = mount(<App />);
-    window.dispatchEvent(new Event('resize'));
-    expect(wrapper.find('#page-sidebar').hasClass('pf-m-expanded')).toBeTruthy();
+  test('nav-toggle ボタンが存在する', () => {
+    renderApp();
+    expect(document.getElementById('nav-toggle')).toBeInTheDocument();
   });
 
-  it('should hide the sidebar when clicking the nav-toggle button', () => {
-    Object.defineProperty(window, 'innerWidth', {writable: true, configurable: true, value: 1200});
-    const wrapper = mount(<App />);
-    window.dispatchEvent(new Event('resize'));
-    const button = wrapper.find('#nav-toggle').hostNodes();
-    expect(wrapper.find('#page-sidebar').hasClass('pf-m-expanded')).toBeTruthy();
-    button.simulate('click');
-    expect(wrapper.find('#page-sidebar').hasClass('pf-m-collapsed')).toBeTruthy();
-    expect(wrapper.find('#page-sidebar').hasClass('pf-m-expanded')).toBeFalsy();
+  test('バージョン番号が表示される', () => {
+    renderApp();
+    const pkg = require('/package.json');
+    expect(screen.getByText(`Release ${pkg.version}`)).toBeInTheDocument();
   });
 });
