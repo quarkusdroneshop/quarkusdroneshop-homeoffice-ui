@@ -19,3 +19,5 @@ spec:
   owner: user:default/nmushino
   lifecycle: production
   system: sandbox1332
+  dependsOn:
+    - component:quarkusdroneshop-homeoffice
