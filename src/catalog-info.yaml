@@ -6,8 +6,16 @@ metadata:
   labels:
     app: homeoffice-ui
   annotations:
-    github.com/project-slug: quarkusdroneshop/homeoffice-ui
+    github.com/project-slug: quarkusdroneshop/quarkusdroneshop-homeoffice-ui
+    backstage.io/kubernetes-id: quarkusdroneshop-homeoffice-ui
+    backstage.io/kubernetes-cluster: sandbox1332
+    backstage.io/kubernetes-label-selector: app.kubernetes.io/instance=quarkusdroneshop-homeoffice-ui
+    tektonci.io/pipeline: build-and-push-quarkusdroneshop-homeoffice-ui
+    tektonci.io/pipelineNamespace: quarkusdroneshop-cicd
+    tekton.dev/cicd: "true"
+    janus-idp.io/tekton: "true"
 spec:
   type: website
   owner: user:default/nmushino
   lifecycle: production
+  system: sandbox1332
