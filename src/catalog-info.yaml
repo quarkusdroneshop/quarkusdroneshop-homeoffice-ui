@@ -12,7 +12,7 @@ metadata:
     github.com/project-slug: quarkusdroneshop/quarkusdroneshop-homeoffice-ui
     backstage.io/kubernetes-id: quarkusdroneshop-homeoffice-ui
     backstage.io/kubernetes-cluster: c-cluster
-    backstage.io/kubernetes-label-selector: app.kubernetes.io/instance=homeoffice-ui
+    backstage.io/kubernetes-label-selector: app.kubernetes.io/instance=quarkusdroneshop-homeoffice-ui
     argocd/app-selector: app.kubernetes.io/instance=quarkusdroneshop-homeoffice-ui
     tekton.dev/type: pipeline
     rhdh.redhat.com/tekton-enabled: "true"
