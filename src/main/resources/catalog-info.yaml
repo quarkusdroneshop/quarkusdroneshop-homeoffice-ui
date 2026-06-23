@@ -1,0 +1,25 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: quarkusdroneshop-homeoffice-ui
+  description: ホームオフィスUIのフロントエンドサービスです
+  tags:
+    - latest
+    - b-cluster
+  labels:
+    app: homeoffice-ui
+  annotations:
+    github.com/project-slug: quarkusdroneshop/quarkusdroneshop-homeoffice-ui
+    backstage.io/kubernetes-id: quarkusdroneshop-homeoffice-ui
+    backstage.io/kubernetes-cluster: b-cluster
+    backstage.io/kubernetes-label-selector: app.kubernetes.io/instance=quarkusdroneshop-homeoffice-ui
+    tektonci.io/pipeline: build-and-push-quarkusdroneshop-homeoffice-ui
+    tektonci.io/pipelineNamespace: quarkusdroneshop-cicd
+    tekton.dev/cicd: "true"
+    janus-idp.io/tekton: "true"
+    rhdh.redhat.com/tekton-enabled: "true"
+spec:
+  type: frontend
+  lifecycle: production
+  owner: user:default/nmushino
+  system: b-cluster
