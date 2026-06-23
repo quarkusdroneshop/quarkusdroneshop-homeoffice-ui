@@ -5,13 +5,13 @@ metadata:
   description: ホームオフィスUIのフロントエンドサービスです
   tags:
     - latest
-    - b-cluster
+    - c-cluster
   labels:
     app: homeoffice-ui
   annotations:
     github.com/project-slug: quarkusdroneshop/quarkusdroneshop-homeoffice-ui
     backstage.io/kubernetes-id: quarkusdroneshop-homeoffice-ui
-    backstage.io/kubernetes-cluster: b-cluster
+    backstage.io/kubernetes-cluster: c-cluster
     backstage.io/kubernetes-label-selector: app.kubernetes.io/instance=quarkusdroneshop-homeoffice-ui
     tektonci.io/pipeline: build-and-push-quarkusdroneshop-homeoffice-ui
     tektonci.io/pipelineNamespace: quarkusdroneshop-cicd
@@ -19,7 +19,7 @@ metadata:
     janus-idp.io/tekton: "true"
     rhdh.redhat.com/tekton-enabled: "true"
 spec:
-  type: frontend
+  type: web
   lifecycle: production
   owner: user:default/nmushino
-  system: b-cluster
+  system: c-cluster
