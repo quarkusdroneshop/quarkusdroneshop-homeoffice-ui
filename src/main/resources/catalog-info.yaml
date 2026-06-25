@@ -23,3 +23,7 @@ spec:
   lifecycle: production
   owner: user:default/nmushino
   system: c-cluster
+  dependsOn:
+    - component:quarkusdroneshop-homeoffice
+  consumesApis:
+    - quarkusdroneshop-homeoffice-graphql
