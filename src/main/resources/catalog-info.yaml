@@ -17,6 +17,7 @@ metadata:
     tektonci.io/pipelineNamespace: quarkusdroneshop-cicd
     tekton.dev/cicd: "true"
     janus-idp.io/tekton: "true"
+    backstage.io/techdocs-ref: url:https://github.com/quarkusdroneshop/quarkusdroneshop-homeoffice-ui/tree/main/
     rhdh.redhat.com/tekton-enabled: "true"
 spec:
   type: web
