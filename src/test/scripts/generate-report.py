@@ -1228,6 +1228,29 @@ def wapiti_html():
 su_color = "#27ae60" if su_pct == 100 else ("#f39c12" if su_pct >= 70 else "#e74c3c")
 fa_color = "#27ae60" if fa_pct == 100 else ("#f39c12" if fa_pct >= 70 else "#e74c3c")
 
+# Wapiti nav item and page are rendered only when findings exist
+_wapiti_nav = (
+    '<div class="nav-item" onclick="showPage(\'wapiti\',this)">'
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">'
+    '<path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3'
+    ' L13.71 3.86a2 2 0 00-3.42 0z"/>'
+    '<line x1="12" y1="9" x2="12" y2="13"/>'
+    '<line x1="12" y1="17" x2="12.01" y2="17"/>'
+    f'</svg>Wapiti (DAST)'
+    f'<span class="nav-badge ng">{wapiti_total}</span>'
+    '</div>'
+) if wapiti_total > 0 else ""
+
+_wapiti_page = (
+    f'<div id="page-wapiti" class="page">'
+    f'<div class="page-header">'
+    f'<h1>Wapiti — DAST 動的スキャン</h1>'
+    f'<p>{wapiti_total} 件の検出</p>'
+    f'</div>'
+    f'<div class="content"><div class="card">{wapiti_html()}</div></div>'
+    f'</div>'
+) if wapiti_total > 0 else ""
+
 html = f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -1420,15 +1443,7 @@ html = f"""<!DOCTYPE html>
       </svg>Trivy (依存関係)
       <span class="nav-badge {'ok' if trivy_total==0 else 'ng'}">{trivy_total}</span>
     </div>
-    <div class="nav-item" onclick="showPage('wapiti',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3
-          L13.71 3.86a2 2 0 00-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/>
-        <line x1="12" y1="17" x2="12.01" y2="17"/>
-      </svg>Wapiti (DAST)
-      <span class="nav-badge {'ok' if wapiti_total==0 else 'ng'}">{wapiti_total}</span>
-    </div>
+    {_wapiti_nav}
   </nav>
   <div class="sidebar-footer">Surefire · JaCoCo · Semgrep · Trivy</div>
 </aside>
@@ -1697,16 +1712,8 @@ html = f"""<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- ── Wapiti ── -->
-  <div id="page-wapiti" class="page">
-    <div class="page-header">
-      <h1>Wapiti — DAST 動的スキャン</h1>
-      <p>{wapiti_total} 件の検出</p>
-    </div>
-    <div class="content">
-      <div class="card">{wapiti_html()}</div>
-    </div>
-  </div>
+  <!-- ── Wapiti (findings only) ── -->
+  {_wapiti_page}
 
 </main>
 
