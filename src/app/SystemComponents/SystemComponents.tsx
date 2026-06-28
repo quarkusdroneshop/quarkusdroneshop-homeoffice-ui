@@ -28,14 +28,14 @@ import {
   TextContent,
   Spinner,
   Label,
- } from '@patternfly/react-core';
+} from '@patternfly/react-core';
 
- import {
+import {
   ChartDonutUtilization,
+  ChartBar,
   ChartGroup,
-  ChartArea,
   ChartVoronoiContainer,
- } from '@patternfly/react-charts';
+} from '@patternfly/react-charts';
 
 import CodeBranchIcon from '@patternfly/react-icons/dist/js/icons/code-branch-icon';
 import CubeIcon from '@patternfly/react-icons/dist/js/icons/cube-icon';
@@ -43,8 +43,6 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
 import { gql } from '@apollo/client';
 import client from 'src/apolloclient';
-
-import { WebItem } from './Web/WebItem';
 
 const GET_INVENTORY = gql`
   query InventoryLevels {
@@ -62,15 +60,14 @@ interface InventoryLevel {
   capacity: number;
 }
 
-interface GitHubRepo {
+interface ComponentMeta {
+  loading: boolean;
   pushedAt: string;
   stargazersCount: number;
   forksCount: number;
   openIssuesCount: number;
-}
-
-interface ComponentMeta extends GitHubRepo {
-  loading: boolean;
+  weeklyCommits: number[];   // last 4 weeks, oldest→newest
+  health: 'ok' | 'warn' | 'unknown';
 }
 
 interface State {
@@ -81,14 +78,17 @@ interface State {
   inventory: InventoryLevel[];
   inventoryLoading: boolean;
   github: Record<string, ComponentMeta>;
+  backendHealth: 'ok' | 'error' | 'checking';
 }
 
-const REPOS: Record<string, string> = {
-  Web:       'quarkusdroneshop/quarkusdroneshop-web',
-  Counter:   'quarkusdroneshop/quarkusdroneshop-counter',
-  QDCA10:    'quarkusdroneshop/quarkusdroneshop-barista',
-  QDCA10Pro: 'quarkusdroneshop/quarkusdroneshop-kitchen',
-  Inventory: 'quarkusdroneshop/quarkusdroneshop-inventory',
+const REPOS: Record<string, { repo: string; label: string; desc: string }> = {
+  Web:           { repo: 'quarkusdroneshop/quarkusdroneshop-web',           label: 'Web',             desc: '注文受付 Web フロントエンド' },
+  Counter:       { repo: 'quarkusdroneshop/quarkusdroneshop-counter',       label: 'Counter',         desc: 'イベント調整・注文ルーティング' },
+  QDCA10:        { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10',        label: 'QDCA10',          desc: 'ドローン A10 在庫管理・発送サービス' },
+  QDCA10Pro:     { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10pro',     label: 'QDCA10Pro',       desc: 'ドローン A10Pro 在庫管理・発送サービス' },
+  Inventory:     { repo: 'quarkusdroneshop/quarkusdroneshop-inventory',     label: 'Inventory',       desc: 'ドローン・食品在庫管理・補充サービス' },
+  Homeoffice:    { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice',    label: 'Homeoffice',      desc: 'バックエンド GraphQL API サービス' },
+  HomeofficUI:   { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice-ui', label: 'Homeoffice UI',   desc: 'ホームオフィス管理ダッシュボード (本アプリ)' },
 };
 
 function relativeTime(iso: string): string {
@@ -105,6 +105,8 @@ const defaultMeta: ComponentMeta = {
   stargazersCount: 0,
   forksCount: 0,
   openIssuesCount: 0,
+  weeklyCommits: [0, 0, 0, 0],
+  health: 'unknown',
 };
 
 export class SystemComponents extends React.Component<{}, State> {
@@ -120,6 +122,7 @@ export class SystemComponents extends React.Component<{}, State> {
       inventory: [],
       inventoryLoading: true,
       github: Object.fromEntries(Object.keys(REPOS).map(k => [k, { ...defaultMeta }])),
+      backendHealth: 'checking',
     };
     this.onCloseDrawerClick = this.onCloseDrawerClick.bind(this);
   }
@@ -127,7 +130,11 @@ export class SystemComponents extends React.Component<{}, State> {
   componentDidMount() {
     this.loadInventory();
     this.loadGitHub();
-    this.intervalId = window.setInterval(() => this.loadInventory(), 30000);
+    this.checkBackendHealth();
+    this.intervalId = window.setInterval(() => {
+      this.loadInventory();
+      this.checkBackendHealth();
+    }, 30000);
   }
 
   componentWillUnmount() {
@@ -144,20 +151,42 @@ export class SystemComponents extends React.Component<{}, State> {
       .catch(() => this.setState({ inventoryLoading: false }));
   }
 
+  checkBackendHealth() {
+    client
+      .query({ query: GET_INVENTORY, fetchPolicy: 'no-cache' })
+      .then(() => this.setState({ backendHealth: 'ok' }))
+      .catch(() => this.setState({ backendHealth: 'error' }));
+  }
+
   loadGitHub() {
-    Object.entries(REPOS).forEach(([key, repo]) => {
-      fetch(`https://api.github.com/repos/${repo}`)
-        .then(r => r.json())
-        .then(data => {
+    Object.entries(REPOS).forEach(([key, { repo }]) => {
+      // fetch repo info + commit activity in parallel
+      Promise.all([
+        fetch(`https://api.github.com/repos/${repo}`).then(r => r.json()),
+        fetch(`https://api.github.com/repos/${repo}/stats/commit_activity`).then(r => r.json()),
+      ])
+        .then(([repoData, activity]) => {
+          // activity = array of 52 weekly objects {week, total, days[]}
+          let weeklyCommits = [0, 0, 0, 0];
+          if (Array.isArray(activity) && activity.length >= 4) {
+            weeklyCommits = activity.slice(-4).map((w: { total: number }) => w.total);
+          }
+          const daysSincePush = repoData.pushed_at
+            ? Math.floor((Date.now() - new Date(repoData.pushed_at).getTime()) / 86400000)
+            : 999;
+          const health: 'ok' | 'warn' | 'unknown' = daysSincePush < 30 ? 'ok' : daysSincePush < 180 ? 'warn' : 'unknown';
+
           this.setState(prev => ({
             github: {
               ...prev.github,
               [key]: {
                 loading: false,
-                pushedAt: data.pushed_at ?? '',
-                stargazersCount: data.stargazers_count ?? 0,
-                forksCount: data.forks_count ?? 0,
-                openIssuesCount: data.open_issues_count ?? 0,
+                pushedAt: repoData.pushed_at ?? '',
+                stargazersCount: repoData.stargazers_count ?? 0,
+                forksCount: repoData.forks_count ?? 0,
+                openIssuesCount: repoData.open_issues_count ?? 0,
+                weeklyCommits,
+                health,
               },
             },
           }));
@@ -200,24 +229,61 @@ export class SystemComponents extends React.Component<{}, State> {
     this.setState({ isDrawerExpanded: false, selectedDataListItemId: '' });
   }
 
+  // GitHub meta badges
   ghBadge(key: string) {
     const g = this.state.github[key];
     if (g.loading) return <Spinner size="sm" />;
     return (
-      <Flex>
+      <Flex style={{ marginTop: 4 }}>
         <FlexItem><CodeBranchIcon /> {g.forksCount} forks</FlexItem>
         <FlexItem><CubeIcon /> {g.openIssuesCount} issues</FlexItem>
-        {g.pushedAt && (
-          <FlexItem>
-            <CheckCircleIcon color="green" /> 更新: {relativeTime(g.pushedAt)}
-          </FlexItem>
-        )}
-        {!g.pushedAt && (
-          <FlexItem>
-            <ExclamationTriangleIcon color="orange" /> GitHub 未取得
-          </FlexItem>
+        {g.pushedAt ? (
+          <FlexItem>更新: {relativeTime(g.pushedAt)}</FlexItem>
+        ) : (
+          <FlexItem><ExclamationTriangleIcon color="orange" /> 未取得</FlexItem>
         )}
       </Flex>
+    );
+  }
+
+  // Health label
+  healthLabel(key: string, overrideHealth?: 'ok' | 'error' | 'checking') {
+    if (overrideHealth === 'checking') return <Label color="blue" isCompact><Spinner size="sm" /> 確認中</Label>;
+    if (overrideHealth === 'error') return <Label color="red" isCompact><ExclamationTriangleIcon /> 応答なし</Label>;
+    if (overrideHealth === 'ok') return <Label color="green" isCompact><CheckCircleIcon /> 正常稼働</Label>;
+
+    const g = this.state.github[key];
+    if (g.loading) return <Label color="blue" isCompact><Spinner size="sm" /></Label>;
+    if (g.health === 'ok') return <Label color="green" isCompact><CheckCircleIcon /> 正常</Label>;
+    if (g.health === 'warn') return <Label color="orange" isCompact><ExclamationTriangleIcon /> 要確認</Label>;
+    return <Label color="grey" isCompact>不明</Label>;
+  }
+
+  // Weekly commit bar chart (last 4 weeks)
+  commitChart(key: string) {
+    const g = this.state.github[key];
+    if (g.loading) return <Spinner size="md" />;
+    const data = g.weeklyCommits.map((y, i) => ({ x: `W-${3 - i}`, y }));
+    const maxY = Math.max(...g.weeklyCommits, 1);
+    return (
+      <div style={{ height: 100, width: 200 }}>
+        <ChartGroup
+          ariaDesc="Monthly commits"
+          ariaTitle="直近1ヶ月コミット数"
+          domainPadding={{ x: 20 }}
+          height={100}
+          width={200}
+          padding={{ top: 8, bottom: 24, left: 30, right: 8 }}
+          domain={{ y: [0, maxY + 1] }}
+          containerComponent={<ChartVoronoiContainer constrainToVisibleArea />}
+        >
+          <ChartBar
+            data={data}
+            style={{ data: { fill: '#0066cc' } }}
+          />
+        </ChartGroup>
+        <Text component="small" style={{ display: 'block', textAlign: 'center' }}>直近4週コミット数</Text>
+      </div>
     );
   }
 
@@ -247,6 +313,48 @@ export class SystemComponents extends React.Component<{}, State> {
     );
   }
 
+  componentRow(key: string, chartContent: React.ReactNode, drawerBody: React.ReactNode, overrideHealth?: 'ok' | 'error' | 'checking') {
+    const { repo, label, desc } = REPOS[key];
+    return (
+      <DataListItem key={key} id={key}>
+        <DataListItemRow>
+          <DataListItemCells dataListCells={[
+            <DataListCell key="info" width={2}>
+              <Flex direction={{ default: 'column' }}>
+                <FlexItem>
+                  <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                    <FlexItem>
+                      <Title headingLevel="h3" size="xl">{label}</Title>
+                    </FlexItem>
+                    <FlexItem>{this.healthLabel(key, overrideHealth)}</FlexItem>
+                  </Flex>
+                  <small>
+                    <div>{desc}</div>
+                    <a href={`https://github.com/${repo}`} target="_blank" rel="noreferrer">
+                      github.com/{repo}
+                    </a>
+                  </small>
+                </FlexItem>
+                {this.ghBadge(key)}
+              </Flex>
+            </DataListCell>,
+            <DataListCell key="chart" width={2}>{chartContent}</DataListCell>,
+            <DataListAction key="action" id={`${key}-action`} aria-label={`${key} actions`} aria-labelledby={key}>
+              <Stack>
+                <StackItem>
+                  <Button variant={ButtonVariant.secondary}
+                    onClick={() => this.openDrawer(key, `${label} 詳細`, drawerBody)}>
+                    Detail
+                  </Button>
+                </StackItem>
+              </Stack>
+            </DataListAction>,
+          ]} />
+        </DataListItemRow>
+      </DataListItem>
+    );
+  }
+
   render() {
     const {
       isDrawerExpanded,
@@ -255,18 +363,33 @@ export class SystemComponents extends React.Component<{}, State> {
       selectedDataListItemId,
       inventory,
       inventoryLoading,
+      backendHealth,
     } = this.state;
 
     const droneRemaining = this.inventoryPct('drone');
     const foodRemaining  = this.inventoryPct('food');
+    const droneItems = inventory.filter(i => ['DRONE', 'drone', 'Drone'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase())));
+    const foodItems  = inventory.filter(i => ['FOOD', 'food', 'BURGER', 'FRIES', 'MUFFIN'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase())));
 
-    const droneItems = inventory.filter(i => ['DRONE','drone','Drone'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase())));
-    const foodItems  = inventory.filter(i => ['FOOD','food','BURGER','FRIES','MUFFIN'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase())));
+    const inventorySummary = (
+      <Flex direction={{ default: 'column' }}>
+        {inventory.slice(0, 4).map(i => {
+          const pct = i.capacity > 0 ? Math.round((i.remaining / i.capacity) * 100) : 0;
+          return (
+            <FlexItem key={i.itemName}>
+              <Label color={pct < 20 ? 'red' : pct < 50 ? 'orange' : 'green'} isCompact>
+                {i.itemName}: {pct}%
+              </Label>
+            </FlexItem>
+          );
+        })}
+      </Flex>
+    );
 
     const panelContent = (
       <DrawerPanelContent minSize="400px">
         <DrawerHead>
-          <Title headingLevel="h2" size="xl">{drawerTitle} 詳細</Title>
+          <Title headingLevel="h2" size="xl">{drawerTitle}</Title>
           <DrawerActions>
             <DrawerCloseButton onClick={this.onCloseDrawerClick} />
           </DrawerActions>
@@ -282,210 +405,79 @@ export class SystemComponents extends React.Component<{}, State> {
         onSelectDataListItem={id => this.setState({ selectedDataListItemId: id })}
       >
         {/* Web */}
-        <WebItem />
+        {this.componentRow('Web', this.commitChart('Web'),
+          <Text>GitHub リポジトリ情報は左パネルを参照してください。</Text>)}
 
         {/* Counter */}
-        <DataListItem key="Counter" id="Counter">
-          <DataListItemRow>
-            <DataListItemCells dataListCells={[
-              <DataListCell key="info">
-                <Flex direction={{ default: 'column' }}>
-                  <FlexItem>
-                    <Title headingLevel="h3" size="xl">Counter</Title>
-                    <small>
-                      <div>システム内のイベントを調整するサービス</div>
-                      <a href="https://github.com/quarkusdroneshop/quarkusdroneshop-counter" target="_blank" rel="noreferrer">
-                        github.com/quarkusdroneshop/quarkusdroneshop-counter
-                      </a>
-                    </small>
-                  </FlexItem>
-                  {this.ghBadge('Counter')}
-                </Flex>
-              </DataListCell>,
-              <DataListCell key="graph">
-                <div style={{ height: '100px', width: '250px' }}>
-                  <ChartGroup
-                    ariaDesc="Transactions per hour"
-                    ariaTitle="Transactions per hour"
-                    padding={0}
-                    height={100}
-                    width={250}
-                    containerComponent={<ChartVoronoiContainer constrainToVisibleArea />}
-                  >
-                    <ChartArea
-                      data={[
-                        { name: 'Transactions', x: new Date().getHours()-4, y: 3 },
-                        { name: 'Transactions', x: new Date().getHours()-3, y: 4 },
-                        { name: 'Transactions', x: new Date().getHours()-2, y: 8 },
-                        { name: 'Transactions', x: new Date().getHours()-1, y: 6 },
-                        { name: 'Transactions', x: new Date().getHours(),   y: 7 },
-                      ]}
-                    />
-                  </ChartGroup>
-                  <Text component="small">Transactions Per Hour</Text>
-                </div>
-              </DataListCell>,
-              <DataListAction id="counter-action" aria-label="counter actions" aria-labelledby="Counter">
-                <Stack>
-                  <StackItem>
-                    <Button variant={ButtonVariant.secondary}
-                      onClick={() => this.openDrawer('Counter', 'Counter', <Text>GitHub リポジトリ情報は左パネルを参照してください。</Text>)}>
-                      Detail
-                    </Button>
-                  </StackItem>
-                </Stack>
-              </DataListAction>,
-            ]} />
-          </DataListItemRow>
-        </DataListItem>
+        {this.componentRow('Counter', this.commitChart('Counter'),
+          <Text>GitHub リポジトリ情報は左パネルを参照してください。</Text>)}
 
         {/* QDCA10 */}
-        <DataListItem key="QDCA10" id="QDCA10">
-          <DataListItemRow>
-            <DataListItemCells dataListCells={[
-              <DataListCell key="info">
-                <Flex direction={{ default: 'column' }}>
-                  <FlexItem>
-                    <Title headingLevel="h3" size="xl">QDCA10</Title>
-                    <small>
-                      <div>ドローン在庫を管理・発送を手配するサービス</div>
-                      <a href="https://github.com/quarkusdroneshop/quarkusdroneshop-barista" target="_blank" rel="noreferrer">
-                        github.com/quarkusdroneshop/quarkusdroneshop-barista
-                      </a>
-                    </small>
-                  </FlexItem>
-                  {this.ghBadge('QDCA10')}
-                </Flex>
-              </DataListCell>,
-              <DataListCell key="chart">
-                {inventoryLoading ? <Spinner size="md" /> : (
-                  <div style={{ height: '140px', width: '140px' }}>
-                    <ChartDonutUtilization
-                      ariaDesc="Drone Remaining"
-                      ariaTitle="Drone Remaining"
-                      constrainToVisibleArea
-                      data={{ x: 'Drone 在庫', y: droneRemaining }}
-                      invert
-                      height={140}
-                      subTitle="remaining"
-                      title={`${droneRemaining}%`}
-                      thresholds={[{ value: 30 }, { value: 20 }]}
-                      width={140}
-                    />
-                  </div>
-                )}
-              </DataListCell>,
-              <DataListAction id="qdca10-action" aria-label="QDCA10 actions" aria-labelledby="QDCA10">
-                <Stack>
-                  <StackItem>
-                    <Button variant={ButtonVariant.secondary}
-                      onClick={() => this.openDrawer('QDCA10', 'QDCA10 在庫詳細', this.inventoryDetail(droneItems))}>
-                      Detail
-                    </Button>
-                  </StackItem>
-                </Stack>
-              </DataListAction>,
-            ]} />
-          </DataListItemRow>
-        </DataListItem>
+        {this.componentRow('QDCA10',
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+            {inventoryLoading ? <Spinner size="md" /> : (
+              <div style={{ height: 140, width: 140 }}>
+                <ChartDonutUtilization
+                  ariaDesc="Drone Remaining"
+                  constrainToVisibleArea
+                  data={{ x: 'Drone 在庫', y: droneRemaining }}
+                  invert
+                  height={140}
+                  subTitle="remaining"
+                  title={`${droneRemaining}%`}
+                  thresholds={[{ value: 30 }, { value: 20 }]}
+                  width={140}
+                />
+              </div>
+            )}
+            {this.commitChart('QDCA10')}
+          </div>,
+          this.inventoryDetail(droneItems))}
 
         {/* QDCA10Pro */}
-        <DataListItem key="QDCA10Pro" id="QDCA10Pro">
-          <DataListItemRow>
-            <DataListItemCells dataListCells={[
-              <DataListCell key="info">
-                <Flex direction={{ default: 'column' }}>
-                  <FlexItem>
-                    <Title headingLevel="h3" size="xl">QDCA10Pro</Title>
-                    <small>
-                      <div>ドローン在庫を管理・発送を手配するサービス</div>
-                      <a href="https://github.com/quarkusdroneshop/quarkusdroneshop-kitchen" target="_blank" rel="noreferrer">
-                        github.com/quarkusdroneshop/quarkusdroneshop-kitchen
-                      </a>
-                    </small>
-                  </FlexItem>
-                  {this.ghBadge('QDCA10Pro')}
-                </Flex>
-              </DataListCell>,
-              <DataListCell key="chart">
-                {inventoryLoading ? <Spinner size="md" /> : (
-                  <div style={{ height: '140px', width: '140px' }}>
-                    <ChartDonutUtilization
-                      ariaDesc="Food Remaining"
-                      ariaTitle="Food Remaining"
-                      constrainToVisibleArea
-                      data={{ x: 'Food 在庫', y: foodRemaining }}
-                      invert
-                      height={140}
-                      subTitle="remaining"
-                      title={`${foodRemaining}%`}
-                      thresholds={[{ value: 50 }, { value: 25 }]}
-                      width={140}
-                    />
-                  </div>
-                )}
-              </DataListCell>,
-              <DataListAction id="qdca10pro-action" aria-label="QDCA10Pro actions" aria-labelledby="QDCA10Pro">
-                <Stack>
-                  <StackItem>
-                    <Button variant={ButtonVariant.secondary}
-                      onClick={() => this.openDrawer('QDCA10Pro', 'QDCA10Pro 在庫詳細', this.inventoryDetail(foodItems))}>
-                      Detail
-                    </Button>
-                  </StackItem>
-                </Stack>
-              </DataListAction>,
-            ]} />
-          </DataListItemRow>
-        </DataListItem>
+        {this.componentRow('QDCA10Pro',
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+            {inventoryLoading ? <Spinner size="md" /> : (
+              <div style={{ height: 140, width: 140 }}>
+                <ChartDonutUtilization
+                  ariaDesc="Food Remaining"
+                  constrainToVisibleArea
+                  data={{ x: 'Food 在庫', y: foodRemaining }}
+                  invert
+                  height={140}
+                  subTitle="remaining"
+                  title={`${foodRemaining}%`}
+                  thresholds={[{ value: 50 }, { value: 25 }]}
+                  width={140}
+                />
+              </div>
+            )}
+            {this.commitChart('QDCA10Pro')}
+          </div>,
+          this.inventoryDetail(foodItems))}
 
         {/* Inventory */}
-        <DataListItem key="Inventory" id="Inventory">
-          <DataListItemRow>
-            <DataListItemCells dataListCells={[
-              <DataListCell key="info">
-                <Flex direction={{ default: 'column' }}>
-                  <FlexItem>
-                    <Title headingLevel="h3" size="xl">Inventory</Title>
-                    <small>
-                      <div>QDCA10 / QDCA10Pro の在庫を管理・補充するサービス</div>
-                      <a href="https://github.com/quarkusdroneshop/quarkusdroneshop-inventory" target="_blank" rel="noreferrer">
-                        github.com/quarkusdroneshop/quarkusdroneshop-inventory
-                      </a>
-                    </small>
-                  </FlexItem>
-                  {this.ghBadge('Inventory')}
-                </Flex>
-              </DataListCell>,
-              <DataListCell key="summary">
-                {inventoryLoading ? <Spinner size="md" /> : (
-                  <Flex direction={{ default: 'column' }}>
-                    {inventory.slice(0, 4).map(i => {
-                      const pct = i.capacity > 0 ? Math.round((i.remaining / i.capacity) * 100) : 0;
-                      return (
-                        <FlexItem key={i.itemName}>
-                          <Label color={pct < 20 ? 'red' : pct < 50 ? 'orange' : 'green'} isCompact>
-                            {i.itemName}: {pct}%
-                          </Label>
-                        </FlexItem>
-                      );
-                    })}
-                  </Flex>
-                )}
-              </DataListCell>,
-              <DataListAction id="inventory-action" aria-label="Inventory actions" aria-labelledby="Inventory">
-                <Stack>
-                  <StackItem>
-                    <Button variant={ButtonVariant.secondary}
-                      onClick={() => this.openDrawer('Inventory', '全在庫一覧', this.inventoryDetail(inventory))}>
-                      Detail
-                    </Button>
-                  </StackItem>
-                </Stack>
-              </DataListAction>,
-            ]} />
-          </DataListItemRow>
-        </DataListItem>
+        {this.componentRow('Inventory',
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+            {inventoryLoading ? <Spinner size="md" /> : inventorySummary}
+            {this.commitChart('Inventory')}
+          </div>,
+          this.inventoryDetail(inventory))}
+
+        {/* Homeoffice (backend) — uses live GraphQL health */}
+        {this.componentRow('Homeoffice', this.commitChart('Homeoffice'),
+          <TextContent>
+            <Text><strong>GraphQL エンドポイント</strong> 経由で正常性を確認しています。</Text>
+            <Text>ステータス: {backendHealth === 'ok' ? '✅ 正常応答' : backendHealth === 'error' ? '❌ 応答なし' : '⏳ 確認中'}</Text>
+          </TextContent>,
+          backendHealth)}
+
+        {/* Homeoffice UI */}
+        {this.componentRow('HomeofficUI', this.commitChart('HomeofficUI'),
+          <TextContent>
+            <Text>本アプリケーション自体です。ブラウザで正常に表示されていれば稼働中です。</Text>
+          </TextContent>,
+          'ok')}
       </DataList>
     );
 
@@ -494,7 +486,7 @@ export class SystemComponents extends React.Component<{}, State> {
         <PageSection variant={PageSectionVariants.light}>
           <TextContent>
             <Text component="h1">システムコンポーネント</Text>
-            <Text component="p">各マイクロサービスの状態と在庫情報</Text>
+            <Text component="p">各マイクロサービスの状態・在庫情報・直近1ヶ月のコミット活動</Text>
           </TextContent>
         </PageSection>
         <Divider component="div" />
