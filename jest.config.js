@@ -2,7 +2,7 @@ module.exports = {
   clearMocks: true,
   collectCoverage: true,
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
+  coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
 
   moduleDirectories: ['node_modules', '<rootDir>/src'],
 

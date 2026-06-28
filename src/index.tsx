@@ -15,10 +15,9 @@ if (process.env.NODE_ENV !== 'production') {
     ],
   };
 
-  // `react-axe` は React 18 の `createRoot` には未対応のため、console に warning が出る可能性があります。
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const axe = require('react-axe');
-  axe(React, ReactDOM, 1000, config);
+  import('@axe-core/react').then(axe => {
+    axe.default(React, ReactDOM, 1000, config);
+  });
 }
 
 // React 18 では root.render を使う

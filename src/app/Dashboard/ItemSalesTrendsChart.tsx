@@ -64,17 +64,20 @@ export class ItemSalesTrendsChart extends React.Component {
           })
           .then(response => {
             const rawData = response.data?.productSalesByDate || [];
-          
+
             const converted = rawData.map(item => ({
               ...item,
               productItemSales: item.productItemSales.map(sale => ({
                 ...sale,
-                saleDate: new Date(sale.saleDate) 
+                saleDate: new Date(sale.saleDate)
               }))
             }));
-          
+
             this.setState({ data: converted });
           })
+          .catch(err => {
+            console.error('Failed to load product sales data:', err);
+          });
         }
 
       render() {
