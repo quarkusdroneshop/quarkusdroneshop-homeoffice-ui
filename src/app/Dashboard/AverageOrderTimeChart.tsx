@@ -108,18 +108,20 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
   render() {
     const { averageOrderUpTime, percentiles } = this.state;
 
-    const displayValue =
-      typeof averageOrderUpTime === 'number' && averageOrderUpTime > 0
-        ? averageOrderUpTime
-        : 1;
+    // averageOrderUpTime はミリ秒単位
+    const hasData = typeof averageOrderUpTime === 'number' && averageOrderUpTime > 0;
+    const displayText = hasData ? formatMs(averageOrderUpTime) : '---';
 
-    const days = Math.floor(averageOrderUpTime / 60);
-    const hours = Math.floor(averageOrderUpTime % 60);
+    // ChartBullet 用: 上限 10分(600000ms) で正規化
+    const MAX_MS = 600_000;
+    const WARN_MS = 120_000;  // 2分
+    const CRIT_MS = 300_000;  // 5分
+    const displayValue = hasData ? Math.min(averageOrderUpTime, MAX_MS) : 1;
 
     return (
       <Card isHoverable>
         <CardTitle>
-          Average OrderUp Time: {days} days {hours} hours
+          Average OrderUp Time: {displayText}
         </CardTitle>
         <CardBody>
           <ChartBullet
@@ -128,16 +130,16 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
             height={172}
             width={550}
             minDomain={{ y: 0 }}
-            maxDomain={{ y: 350 }}
+            maxDomain={{ y: MAX_MS }}
             primarySegmentedMeasureData={[{ name: 'Current', y: displayValue }]}
-            comparativeWarningMeasureData={[{ name: 'Warning', y: 150 }]}
-            comparativeErrorMeasureData={[{ name: 'Critical', y: 300 }]}
+            comparativeWarningMeasureData={[{ name: 'Warning', y: WARN_MS }]}
+            comparativeErrorMeasureData={[{ name: 'Critical', y: CRIT_MS }]}
             qualitativeRangeData={[
-              { name: 'Bad', y: 350 },
-              { name: 'OK', y: 150 },
-              { name: 'Good', y: 100 },
+              { name: 'Bad', y: MAX_MS },
+              { name: 'OK', y: CRIT_MS },
+              { name: 'Good', y: WARN_MS },
             ]}
-            labels={({ datum }) => `${datum.name}: ${datum.x} ms`}
+            labels={({ datum }) => `${datum.name}: ${formatMs(datum.y)}`}
           />
 
           {/* P50 / P95 / P99 パーセンタイル表示 */}
@@ -169,10 +171,10 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
                 <DataListItemCells
                   dataListCells={[
                     <DataListCell key="excellent">
-                      Excellent is under {Math.max(0, hours - 1)} hours
+                      Excellent: under {formatMs(WARN_MS)}
                     </DataListCell>,
                     <DataListCell key="objective">
-                      Objective is under {hours + 1} hours
+                      Objective: under {formatMs(CRIT_MS)}
                     </DataListCell>,
                   ]}
                 />

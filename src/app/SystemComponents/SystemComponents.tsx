@@ -31,7 +31,6 @@ import {
 } from '@patternfly/react-core';
 
 import {
-  ChartDonutUtilization,
   ChartBar,
   ChartGroup,
   ChartVoronoiContainer,
@@ -266,20 +265,20 @@ export class SystemComponents extends React.Component<{}, State> {
     const data = g.weeklyCommits.map((y, i) => ({ x: `W-${3 - i}`, y }));
     const maxY = Math.max(...g.weeklyCommits, 1);
     return (
-      <div style={{ height: 100, width: 200 }}>
+      <div style={{ height: 110, width: 360 }}>
         <ChartGroup
           ariaDesc="Monthly commits"
           ariaTitle="直近1ヶ月コミット数"
-          domainPadding={{ x: 20 }}
-          height={100}
-          width={200}
-          padding={{ top: 8, bottom: 24, left: 30, right: 8 }}
+          domainPadding={{ x: 30 }}
+          height={90}
+          width={360}
+          padding={{ top: 8, bottom: 28, left: 36, right: 12 }}
           domain={{ y: [0, maxY + 1] }}
           containerComponent={<ChartVoronoiContainer constrainToVisibleArea />}
         >
           <ChartBar
             data={data}
-            style={{ data: { fill: '#0066cc' } }}
+            style={{ data: { fill: '#0066cc', width: 48 } }}
           />
         </ChartGroup>
         <Text component="small" style={{ display: 'block', textAlign: 'center' }}>直近4週コミット数</Text>
@@ -366,8 +365,6 @@ export class SystemComponents extends React.Component<{}, State> {
       backendHealth,
     } = this.state;
 
-    const droneRemaining = this.inventoryPct('drone');
-    const foodRemaining  = this.inventoryPct('food');
     const droneItems = inventory.filter(i => ['DRONE', 'drone', 'Drone'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase())));
     const foodItems  = inventory.filter(i => ['FOOD', 'food', 'BURGER', 'FRIES', 'MUFFIN'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase())));
 
@@ -413,47 +410,11 @@ export class SystemComponents extends React.Component<{}, State> {
           <Text>GitHub リポジトリ情報は左パネルを参照してください。</Text>)}
 
         {/* QDCA10 */}
-        {this.componentRow('QDCA10',
-          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-            {inventoryLoading ? <Spinner size="md" /> : (
-              <div style={{ height: 140, width: 140 }}>
-                <ChartDonutUtilization
-                  ariaDesc="Drone Remaining"
-                  constrainToVisibleArea
-                  data={{ x: 'Drone 在庫', y: droneRemaining }}
-                  invert
-                  height={140}
-                  subTitle="remaining"
-                  title={`${droneRemaining}%`}
-                  thresholds={[{ value: 30 }, { value: 20 }]}
-                  width={140}
-                />
-              </div>
-            )}
-            {this.commitChart('QDCA10')}
-          </div>,
+        {this.componentRow('QDCA10', this.commitChart('QDCA10'),
           this.inventoryDetail(droneItems))}
 
         {/* QDCA10Pro */}
-        {this.componentRow('QDCA10Pro',
-          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-            {inventoryLoading ? <Spinner size="md" /> : (
-              <div style={{ height: 140, width: 140 }}>
-                <ChartDonutUtilization
-                  ariaDesc="Food Remaining"
-                  constrainToVisibleArea
-                  data={{ x: 'Food 在庫', y: foodRemaining }}
-                  invert
-                  height={140}
-                  subTitle="remaining"
-                  title={`${foodRemaining}%`}
-                  thresholds={[{ value: 50 }, { value: 25 }]}
-                  width={140}
-                />
-              </div>
-            )}
-            {this.commitChart('QDCA10Pro')}
-          </div>,
+        {this.componentRow('QDCA10Pro', this.commitChart('QDCA10Pro'),
           this.inventoryDetail(foodItems))}
 
         {/* Inventory */}
