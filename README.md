@@ -1,49 +1,79 @@
-# Docs
-Please see the Github Pages Site for complete documentation: [quarkusdroneshop.github.io](https://quarkusdroneshop.github.io)
+# homeoffice-ui
 
+React + TypeScript 製のホームオフィスダッシュボード。`homeoffice-backend` の GraphQL API からデータを取得し、売上チャート・注文ボード・在庫アラートなどを表示します。
 
-#Local Development
-        npm install
-        npm run start:dev
+## 画面構成
 
-You will need the homeoffice-backend running, which also depends on a postgresql db
+| ページ | パス | 説明 |
+|---|---|---|
+| Dashboard | `/` | 売上チャート群・在庫アラート・平均処理時間 |
+| OrderBoard | `/orderboard` | 直近4時間のライブ注文 (Kanban: IN_QUEUE / IN_PROGRESS / FULFILLED) |
+| Settings | `/settings` | GraphQL エンドポイント等の設定表示 |
+| Support | `/support` | サポート情報 |
 
+### Dashboard コンポーネント
 
-#Full Stack Deployment on OpenShift
+- **StoreSalesChart** – 店舗別売上 (棒グラフ)
+- **ItemSalesChart** – 商品別売上 (棒グラフ)
+- **ItemSalesTrendsChart** – 商品別日別売上推移 (折れ線グラフ)
+- **AverageOrderTimeChart** – 平均注文処理時間 (P50/P95/P99)
+- **InventoryAlert** – 在庫切れアラート
+- **MockerSwitch** – モック切替スイッチ
 
-        oc new-project quarkusdroneshop-homeoffice
+## Apollo Client 設定
 
-        oc new-app \
-        -n quarkusdroneshop-homeoffice \
-        --name postgres \
-        --template="openshift/postgresql-persistent" \
-        -e POSTGRESQL_USER=droneshopuser \
-        -e POSTGRESQL_PASSWORD=redhat-20 \
-        -e POSTGRESQL_DATABASE=droneshopdb
+`src/apolloclient.ts`
 
+```typescript
+const link = new HttpLink({
+  uri: process.env.REACT_APP_GRAPHQL_ENDPOINT,
+  credentials: 'omit',  // cross-origin HTTPS バックエンドに対して必須
+});
+```
 
-        oc new-app \
-        -n quarkusdroneshop-homeoffice \
-        --name homeoffice-backend quay.io/quarkus/ubi-quarkus-native-s2i:20.3.0-java11~https://github.com/quarkusdroneshop/homeoffice-backend.git \
-        -e POSTGRESQL_JDBC_URL="jdbc:postgresql://postgresql:5432/droneshopdb?currentSchema=droneshop" \
-        -e POSTGRESQL_USER=droneshopuser \
-        -e POSTGRESQL_PASSWORD=redhat-20
+`credentials: 'omit'` を使用することで、`Access-Control-Allow-Origin: *` のバックエンドと組み合わせて CORS エラーを回避しています。
 
-        oc expose svc/homeoffice-backend
+## ローカル開発
 
-        oc new-app \
-        -n quarkusdroneshop-homeoffice \
-        --name=homeoffice-ui nodejs:latest~https://github.com/quarkusdroneshop/quarkusdroneshop-homeoffice-ui.git \
-        --build-env=REACT_APP_GRAPHQL_ENDPOINT=http://$(oc get routes -o json | jq -r '.items[0].spec.host' | grep homeoffice-backend)/graphql
+```shell
+npm install
+npm run start:dev
+```
 
-        oc expose svc/homeoffice-ui
+`homeoffice-backend` と PostgreSQL が起動している必要があります。GraphQL エンドポイントは環境変数 `REACT_APP_GRAPHQL_ENDPOINT` で設定します。
 
-        oc annotate deployment -l app=homeoffice-ui app.openshift.io/connects-to='["homeoffice-backend"]'
+```shell
+export REACT_APP_GRAPHQL_ENDPOINT=http://localhost:8080/graphql
+```
 
-        oc annotate deployment -l app=homeoffice-backend app.openshift.io/connects-to='["postgres"]'
+## エンドポイント設定スクリプト
 
-        oc label dc -l app=postgres app.kubernetes.io/name=postgresql
+`set-endpoint.sh` を使うと、実行中の OpenShift Route から自動的にエンドポイントを設定してビルドできます。
 
-        oc label deployment -l app=homeoffice-backend app.kubernetes.io/name=quarkus
+```shell
+bash set-endpoint.sh
+```
 
-        oc label deployment -l app=homeoffice-ui app.kubernetes.io/name=nodejs
+## OpenShift デプロイ
+
+```shell
+oc new-app \
+  -n quarkusdroneshop-demo \
+  --name=homeoffice-ui \
+  nodejs:latest~https://github.com/quarkusdroneshop/quarkusdroneshop-homeoffice-ui.git \
+  --build-env=REACT_APP_GRAPHQL_ENDPOINT=https://<homeoffice-backend-route>/graphql
+
+oc expose svc/homeoffice-ui
+```
+
+> **注意**: `homeoffice-backend` の OpenShift Route には TLS edge termination が必要です。`http://` の UI から `https://` のバックエンドに接続する際、Route に TLS 設定がないと HTTP 503 になります。
+
+## 環境変数
+
+| 変数名 | 説明 |
+|---|---|
+| `REACT_APP_GRAPHQL_ENDPOINT` | homeoffice-backend の GraphQL エンドポイント URL |
+
+## 参考
+
+- [quarkusdroneshop.github.io](https://quarkusdroneshop.github.io)
