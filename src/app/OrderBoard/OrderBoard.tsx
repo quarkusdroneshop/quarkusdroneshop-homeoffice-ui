@@ -16,6 +16,7 @@ import {
   EmptyStateBody,
   EmptyStateIcon,
   Title,
+  Alert,
 } from '@patternfly/react-core';
 import CubeIcon from '@patternfly/react-icons/dist/js/icons/cube-icon';
 import { gql } from '@apollo/client';
@@ -51,6 +52,7 @@ interface LiveOrder {
 type State = {
   orders: LiveOrder[];
   loading: boolean;
+  error: string | null;
 };
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -67,14 +69,6 @@ const STATUS_COLORS: Record<OrderStatus, 'blue' | 'orange' | 'green'> = {
 
 const COLUMNS: OrderStatus[] = ['IN_QUEUE', 'IN_PROGRESS', 'FULFILLED'];
 
-const DEMO_ORDERS: LiveOrder[] = [
-  { orderId: 'ORD-001', name: '田中 太郎', item: 'Drone-Express A', status: 'IN_QUEUE', createdAt: new Date(Date.now() - 120000).toISOString() },
-  { orderId: 'ORD-002', name: '鈴木 花子', item: 'Drone-Pro X', status: 'IN_QUEUE', createdAt: new Date(Date.now() - 90000).toISOString() },
-  { orderId: 'ORD-003', name: '佐藤 一郎', item: 'Cargo-Mini', status: 'IN_PROGRESS', madeBy: 'QDCA10', createdAt: new Date(Date.now() - 180000).toISOString(), updatedAt: new Date(Date.now() - 60000).toISOString() },
-  { orderId: 'ORD-004', name: '山田 美咲', item: 'Drone-Express A', status: 'FULFILLED', madeBy: 'QDCA10Pro', createdAt: new Date(Date.now() - 300000).toISOString(), updatedAt: new Date(Date.now() - 30000).toISOString() },
-  { orderId: 'ORD-005', name: '中村 健二', item: 'Scout-Nano', status: 'FULFILLED', madeBy: 'QDCA10', createdAt: new Date(Date.now() - 400000).toISOString(), updatedAt: new Date(Date.now() - 45000).toISOString() },
-];
-
 function elapsedLabel(isoStr: string): string {
   const diffSec = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
   if (diffSec < 60) return `${diffSec}秒前`;
@@ -90,7 +84,7 @@ export class OrderBoard extends React.Component<{}, State> {
 
   constructor(props: {}) {
     super(props);
-    this.state = { orders: [], loading: true };
+    this.state = { orders: [], loading: true, error: null };
     this.loadData = this.loadData.bind(this);
   }
 
@@ -109,16 +103,16 @@ export class OrderBoard extends React.Component<{}, State> {
       .query({ query: GET_LIVE_ORDERS, fetchPolicy: 'no-cache' })
       .then(res => {
         const orders: LiveOrder[] = res?.data?.liveOrders ?? [];
-        this.setState({ orders, loading: false });
+        this.setState({ orders, loading: false, error: null });
       })
-      .catch(() => {
-        // GraphQL unavailable → use demo data for showcase
-        this.setState({ orders: DEMO_ORDERS, loading: false });
+      .catch((err) => {
+        console.error('LiveOrders GraphQL error:', err);
+        this.setState({ loading: false, error: 'バックエンドに接続できません。しばらく待ってから更新してください。' });
       });
   }
 
   render() {
-    const { orders, loading } = this.state;
+    const { orders, loading, error } = this.state;
 
     if (loading) {
       return (
@@ -138,6 +132,9 @@ export class OrderBoard extends React.Component<{}, State> {
         </PageSection>
         <Divider component="div" />
         <PageSection variant={PageSectionVariants.default}>
+          {error && (
+            <Alert variant="danger" title={error} style={{ marginBottom: '16px' }} />
+          )}
           <Flex spaceItems={{ default: 'spaceItemsLg' }} alignItems={{ default: 'alignItemsFlexStart' }}>
             {COLUMNS.map(col => {
               const colOrders = orders.filter(o => o.status === col);

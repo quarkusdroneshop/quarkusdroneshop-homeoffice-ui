@@ -60,12 +60,6 @@ export interface ISupportProps {
   sampleProp?: string;
 }
 
-const DEMO_FAILED: FailedOrder[] = [
-  { orderId: 'ORD-E01', name: '高橋 勇気', item: 'Drone-Express A', failureReason: 'INVENTORY_DEPLETED', failedAt: new Date(Date.now() - 600000).toISOString(), retryCount: 1 },
-  { orderId: 'ORD-E02', name: '小林 奈々', item: 'Cargo-Mini', failureReason: 'PAYMENT_TIMEOUT', failedAt: new Date(Date.now() - 1200000).toISOString(), retryCount: 0 },
-  { orderId: 'ORD-E03', name: '渡辺 浩', item: 'Scout-Nano', failureReason: 'DRONE_MALFUNCTION', failedAt: new Date(Date.now() - 1800000).toISOString(), retryCount: 2 },
-];
-
 type State = {
   orders: FailedOrder[];
   loading: boolean;
@@ -109,8 +103,12 @@ class SupportPage extends React.Component<ISupportProps, State> {
         const orders: FailedOrder[] = res?.data?.failedOrders ?? [];
         this.setState({ orders, loading: false });
       })
-      .catch(() => {
-        this.setState({ orders: DEMO_FAILED, loading: false });
+      .catch((err) => {
+        console.error('FailedOrders GraphQL error:', err);
+        this.setState({
+          loading: false,
+          errorMsg: 'バックエンドへの接続に失敗しました。しばらく待ってから「更新」を押してください。',
+        });
       });
   }
 
