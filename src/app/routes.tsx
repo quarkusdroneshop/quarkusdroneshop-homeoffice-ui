@@ -5,6 +5,7 @@ import { DynamicImport } from '@app/DynamicImport';
 import { accessibleRouteChangeHandler } from '@app/utils/utils';
 import { Dashboard } from '@app/Dashboard/Dashboard';
 import { SystemComponents } from '@app/SystemComponents/SystemComponents';
+import { OrderBoard } from '@app/OrderBoard/OrderBoard';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
 import { NotFound } from '@app/NotFound/NotFound';
@@ -73,6 +74,13 @@ const routes: AppRouteConfig[] = [
     label: 'System Components',
     path: '/systemcomponents',
     title: 'Quarkus Droneshop | System Components',
+  },
+  {
+    component: OrderBoard,
+    exact: true,
+    label: 'Order Board',
+    path: '/orderboard',
+    title: 'Quarkus Droneshop | Order Board',
   },
   {
     component: Support,

@@ -1,42 +1,240 @@
 import * as React from 'react';
-import { CubesIcon } from '@patternfly/react-icons';
 import {
   PageSection,
-  Title,
+  PageSectionVariants,
+  TextContent,
+  Text,
+  Divider,
+  Card,
+  CardBody,
+  CardTitle,
+  Badge,
   Button,
+  Spinner,
   EmptyState,
-  EmptyStateVariant,
-  EmptyStateIcon,
   EmptyStateBody,
-  EmptyStateSecondaryActions
+  EmptyStateIcon,
+  Title,
+  Alert,
+  AlertActionCloseButton,
+  Flex,
+  FlexItem,
 } from '@patternfly/react-core';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
+import { gql } from '@apollo/client';
+import client from 'src/apolloclient';
+
+const GET_FAILED_ORDERS = gql`
+  query FailedOrders {
+    failedOrders {
+      orderId
+      name
+      item
+      failureReason
+      failedAt
+      retryCount
+    }
+  }
+`;
+
+const RETRY_ORDER = gql`
+  mutation RetryOrder($orderId: String!) {
+    retryOrder(orderId: $orderId) {
+      success
+      message
+    }
+  }
+`;
+
+interface FailedOrder {
+  orderId: string;
+  name: string;
+  item: string;
+  failureReason: string;
+  failedAt: string;
+  retryCount: number;
+}
 
 export interface ISupportProps {
   sampleProp?: string;
 }
 
-const Support: React.FunctionComponent<ISupportProps> = () => (
-    <PageSection>
-      <EmptyState variant={EmptyStateVariant.full}>
-        <EmptyStateIcon icon={CubesIcon} />
-        <Title headingLevel="h1" size="lg">
-          Empty State (Stub Support Module)
-        </Title>
-        <EmptyStateBody>
-          This represents an the empty state pattern in Patternfly 4. Hopefully it&apos;s simple enough to use but flexible
-          enough to meet a variety of needs.
-        </EmptyStateBody>
-        <Button variant="primary">Primary Action</Button>
-        <EmptyStateSecondaryActions>
-          <Button variant="link">Multiple</Button>
-          <Button variant="link">Action Buttons</Button>
-          <Button variant="link">Can</Button>
-          <Button variant="link">Go here</Button>
-          <Button variant="link">In the secondary</Button>
-          <Button variant="link">Action area</Button>
-        </EmptyStateSecondaryActions>
-      </EmptyState>
-    </PageSection>
-  )
+const DEMO_FAILED: FailedOrder[] = [
+  { orderId: 'ORD-E01', name: '高橋 勇気', item: 'Drone-Express A', failureReason: 'INVENTORY_DEPLETED', failedAt: new Date(Date.now() - 600000).toISOString(), retryCount: 1 },
+  { orderId: 'ORD-E02', name: '小林 奈々', item: 'Cargo-Mini', failureReason: 'PAYMENT_TIMEOUT', failedAt: new Date(Date.now() - 1200000).toISOString(), retryCount: 0 },
+  { orderId: 'ORD-E03', name: '渡辺 浩', item: 'Scout-Nano', failureReason: 'DRONE_MALFUNCTION', failedAt: new Date(Date.now() - 1800000).toISOString(), retryCount: 2 },
+];
 
+type State = {
+  orders: FailedOrder[];
+  loading: boolean;
+  retrying: Set<string>;
+  successMsg: string | null;
+  errorMsg: string | null;
+};
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleString('ja-JP');
+}
+
+function reasonLabel(code: string): string {
+  const map: Record<string, string> = {
+    INVENTORY_DEPLETED: '在庫不足',
+    PAYMENT_TIMEOUT: '決済タイムアウト',
+    DRONE_MALFUNCTION: 'ドローン障害',
+    NETWORK_ERROR: 'ネットワークエラー',
+    UNKNOWN: '不明なエラー',
+  };
+  return map[code] ?? code;
+}
+
+class SupportPage extends React.Component<ISupportProps, State> {
+  constructor(props: ISupportProps) {
+    super(props);
+    this.state = { orders: [], loading: true, retrying: new Set(), successMsg: null, errorMsg: null };
+    this.loadData = this.loadData.bind(this);
+    this.retryOrder = this.retryOrder.bind(this);
+  }
+
+  componentDidMount() {
+    this.loadData();
+  }
+
+  loadData() {
+    this.setState({ loading: true });
+    client
+      .query({ query: GET_FAILED_ORDERS, fetchPolicy: 'no-cache' })
+      .then(res => {
+        const orders: FailedOrder[] = res?.data?.failedOrders ?? [];
+        this.setState({ orders, loading: false });
+      })
+      .catch(() => {
+        this.setState({ orders: DEMO_FAILED, loading: false });
+      });
+  }
+
+  retryOrder(orderId: string) {
+    this.setState(prev => ({ retrying: new Set([...Array.from(prev.retrying), orderId]) }));
+    client
+      .mutate({ mutation: RETRY_ORDER, variables: { orderId } })
+      .then(res => {
+        const result = res?.data?.retryOrder;
+        this.setState(prev => {
+          const retrying = new Set(prev.retrying);
+          retrying.delete(orderId);
+          return {
+            retrying,
+            successMsg: result?.message ?? `注文 ${orderId} のリトライを送信しました`,
+            orders: prev.orders.filter(o => o.orderId !== orderId),
+          };
+        });
+      })
+      .catch(() => {
+        this.setState(prev => {
+          const retrying = new Set(prev.retrying);
+          retrying.delete(orderId);
+          return { retrying, errorMsg: `注文 ${orderId} のリトライに失敗しました` };
+        });
+      });
+  }
+
+  render() {
+    const { orders, loading, retrying, successMsg, errorMsg } = this.state;
+
+    return (
+      <React.Fragment>
+        <PageSection variant={PageSectionVariants.light}>
+          <TextContent>
+            <Text component="h1">Support</Text>
+            <Text component="p">DLQ（Dead Letter Queue）の失敗注文一覧と障害履歴を管理します</Text>
+          </TextContent>
+        </PageSection>
+
+        <Divider component="div" />
+
+        <PageSection variant={PageSectionVariants.default}>
+          {successMsg && (
+            <Alert
+              variant="success"
+              title={successMsg}
+              actionClose={<AlertActionCloseButton onClose={() => this.setState({ successMsg: null })} />}
+              style={{ marginBottom: '16px' }}
+            />
+          )}
+          {errorMsg && (
+            <Alert
+              variant="danger"
+              title={errorMsg}
+              actionClose={<AlertActionCloseButton onClose={() => this.setState({ errorMsg: null })} />}
+              style={{ marginBottom: '16px' }}
+            />
+          )}
+
+          <Card>
+            <CardTitle>
+              <Flex alignItems={{ default: 'alignItemsCenter' }}>
+                <FlexItem>
+                  <ExclamationTriangleIcon color="var(--pf-global--warning-color--100)" />
+                  &nbsp;失敗注文 (DLQ)
+                </FlexItem>
+                <FlexItem>
+                  <Badge isRead={orders.length === 0}>{loading ? '...' : orders.length}</Badge>
+                </FlexItem>
+                <FlexItem align={{ default: 'alignRight' }}>
+                  <Button variant="secondary" onClick={this.loadData} isDisabled={loading}>
+                    更新
+                  </Button>
+                </FlexItem>
+              </Flex>
+            </CardTitle>
+            <CardBody>
+              {loading ? (
+                <Spinner aria-label="Loading failed orders" />
+              ) : orders.length === 0 ? (
+                <EmptyState>
+                  <EmptyStateIcon icon={CheckCircleIcon} />
+                  <Title headingLevel="h2" size="lg">失敗注文なし</Title>
+                  <EmptyStateBody>現在 DLQ にキューされている注文はありません</EmptyStateBody>
+                </EmptyState>
+              ) : (
+                orders.map(order => (
+                  <Card key={order.orderId} isCompact style={{ marginBottom: '8px' }}>
+                    <CardBody>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                        <FlexItem flex={{ default: 'flex_1' }}>
+                          <strong>{order.orderId}</strong> — {order.name}
+                          <br />
+                          <small>商品: {order.item}</small>
+                          <br />
+                          <Badge>{reasonLabel(order.failureReason)}</Badge>
+                          <small style={{ marginLeft: '8px', color: 'var(--pf-global--Color--200)' }}>
+                            {formatTime(order.failedAt)} / リトライ {order.retryCount} 回
+                          </small>
+                        </FlexItem>
+                        <FlexItem>
+                          <Button
+                            variant="primary"
+                            isSmall
+                            isLoading={retrying.has(order.orderId)}
+                            isDisabled={retrying.has(order.orderId)}
+                            onClick={() => this.retryOrder(order.orderId)}
+                          >
+                            リトライ
+                          </Button>
+                        </FlexItem>
+                      </Flex>
+                    </CardBody>
+                  </Card>
+                ))
+              )}
+            </CardBody>
+          </Card>
+        </PageSection>
+      </React.Fragment>
+    );
+  }
+}
+
+const Support = SupportPage;
 export { Support };

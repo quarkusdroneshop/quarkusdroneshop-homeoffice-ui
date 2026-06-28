@@ -11,6 +11,9 @@ jest.mock('@app/Dashboard/Dashboard', () => ({
 jest.mock('@app/SystemComponents/SystemComponents', () => ({
   SystemComponents: () => <div data-testid="systemcomponents-page">System Components</div>,
 }));
+jest.mock('@app/OrderBoard/OrderBoard', () => ({
+  OrderBoard: () => <div data-testid="orderboard-page">Order Board</div>,
+}));
 jest.mock('@app/Settings/General/GeneralSettings', () => ({
   GeneralSettings: () => <div data-testid="general-settings-page">General Settings</div>,
 }));
@@ -44,6 +47,11 @@ describe('AppRoutes ルーティング', () => {
   test('"/systemcomponents" で SystemComponents が表示される', () => {
     renderRoutes('/systemcomponents');
     expect(screen.getByTestId('systemcomponents-page')).toBeInTheDocument();
+  });
+
+  test('"/orderboard" で OrderBoard が表示される', () => {
+    renderRoutes('/orderboard');
+    expect(screen.getByTestId('orderboard-page')).toBeInTheDocument();
   });
 
   test('"/settings/general" で GeneralSettings が表示される', () => {
@@ -80,6 +88,12 @@ describe('routes 設定', () => {
     expect(dashboard).toBeDefined();
     expect((dashboard as any).label).toBe('Dashboard');
     expect((dashboard as any).exact).toBe(true);
+  });
+
+  test('OrderBoard ルートが "/orderboard" に設定されている', () => {
+    const ob = routes.find((r: any) => r.path === '/orderboard');
+    expect(ob).toBeDefined();
+    expect((ob as any).label).toBe('Order Board');
   });
 
   test('Settings はルートグループとして定義されている', () => {

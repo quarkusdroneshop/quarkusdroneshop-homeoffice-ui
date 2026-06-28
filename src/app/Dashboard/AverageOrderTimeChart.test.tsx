@@ -66,7 +66,8 @@ describe('AverageOrderTimeChart コンポーネント', () => {
   test('componentDidMount で query が呼ばれる', async () => {
     (mockClient.query as jest.Mock).mockResolvedValue({ data: { averageOrderUpTime: 0 } });
     await act(async () => { render(<AverageOrderTimeChart />); });
-    expect(mockClient.query).toHaveBeenCalledTimes(1);
+    // averageOrderUpTime + orderUpTimePercentiles の 2 回
+    expect(mockClient.query).toHaveBeenCalledTimes(2);
   });
 
   test('アンマウント時にインターバルがクリアされる', async () => {

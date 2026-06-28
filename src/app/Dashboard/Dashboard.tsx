@@ -16,7 +16,8 @@ import {
 } from '@patternfly/react-core';
 
 import {
-  CheckCircleIcon
+  CheckCircleIcon,
+  MinusCircleIcon,
 } from '@patternfly/react-icons';
 
 import { ItemSalesChart } from './ItemSalesChart';
@@ -24,9 +25,34 @@ import { ItemSalesTrendsChart } from './ItemSalesTrendsChart';
 import { StoreSalesChart } from './StoreSalesChart';
 import { AverageOrderTimeChart } from './AverageOrderTimeChart';
 import { MockerSwitch } from './MockerSwitch';
+import { InventoryAlert } from './InventoryAlert';
+import { SettingsContext, VisibleSections } from '../utils/SettingsContext';
 
 export class Dashboard extends React.Component {
+  static contextType = SettingsContext;
+  context!: React.ContextType<typeof SettingsContext>;
+
   render() {
+    const { settings, toggleSection } = this.context;
+    const { visibleSections } = settings;
+
+    const sectionLabel = (
+      key: keyof VisibleSections,
+      display: string
+    ) => {
+      const on = visibleSections[key];
+      return (
+        <Label
+          icon={on ? <CheckCircleIcon /> : <MinusCircleIcon />}
+          color={on ? 'green' : 'grey'}
+          onClick={() => toggleSection(key)}
+          style={{ cursor: 'pointer' }}
+        >
+          {display}
+        </Label>
+      );
+    };
+
     return (
       <React.Fragment>
         {/* ヘッダーセクション */}
@@ -39,10 +65,10 @@ export class Dashboard extends React.Component {
             </LevelItem>
 
             <LevelItem>
-              <LabelGroup categoryName="Key Metrics">
-                <Label icon={<CheckCircleIcon />} color="green">OrderUp</Label>
-                <Label icon={<CheckCircleIcon />} color="green">Sales</Label>
-                <Label icon={<CheckCircleIcon />} color="green">Inventory</Label>
+              <LabelGroup categoryName="表示切替">
+                {sectionLabel('orderUp', 'OrderUp')}
+                {sectionLabel('sales', 'Sales')}
+                {sectionLabel('inventory', 'Inventory')}
               </LabelGroup>
             </LevelItem>
 
@@ -54,33 +80,44 @@ export class Dashboard extends React.Component {
 
         <Divider component="div" />
 
-        {/* 売上・注文時間チャート */}
-        <PageSection variant={PageSectionVariants.default}>
-          <Flex gap={{ default: 'gapLg' }} wrap={{ default: 'wrap' }}>
-            <FlexItem>
-              <StoreSalesChart />
-            </FlexItem>
+        {/* 在庫枯渇アラート */}
+        {visibleSections.inventory && (
+          <PageSection variant={PageSectionVariants.default} padding={{ default: 'noPadding' }}>
+            <div style={{ padding: '16px 24px 0' }}>
+              <InventoryAlert />
+            </div>
+          </PageSection>
+        )}
 
-            <FlexItem>
-              <AverageOrderTimeChart />
-            </FlexItem>
-          </Flex>
-        </PageSection>
+        {/* 注文時間・売上チャート */}
+        {visibleSections.orderUp && (
+          <PageSection variant={PageSectionVariants.default}>
+            <Flex gap={{ default: 'gapLg' }} wrap={{ default: 'wrap' }}>
+              <FlexItem>
+                <StoreSalesChart />
+              </FlexItem>
+              <FlexItem>
+                <AverageOrderTimeChart />
+              </FlexItem>
+            </Flex>
+          </PageSection>
+        )}
 
-        <Divider component="div" />
+        {visibleSections.orderUp && <Divider component="div" />}
 
         {/* 商品チャート */}
-        <PageSection variant={PageSectionVariants.default}>
-          <Flex gap={{ default: 'gapLg' }} wrap={{ default: 'wrap' }}>
-            <FlexItem>
-              <ItemSalesChart />
-            </FlexItem>
-
-            <FlexItem>
-              <ItemSalesTrendsChart />
-            </FlexItem>
-          </Flex>
-        </PageSection>
+        {visibleSections.sales && (
+          <PageSection variant={PageSectionVariants.default}>
+            <Flex gap={{ default: 'gapLg' }} wrap={{ default: 'wrap' }}>
+              <FlexItem>
+                <ItemSalesChart />
+              </FlexItem>
+              <FlexItem>
+                <ItemSalesTrendsChart />
+              </FlexItem>
+            </Flex>
+          </PageSection>
+        )}
       </React.Fragment>
     );
   }

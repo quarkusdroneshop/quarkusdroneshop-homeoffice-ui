@@ -7,13 +7,16 @@ import '@app/app.css';
 
 import { ApolloProvider } from '@apollo/react-hooks'
 import client from 'src/apolloclient'
+import { SettingsProvider } from './utils/SettingsContext'
 
 const App: React.FunctionComponent = () => (
   <Router>
     <ApolloProvider client={client} >
-      <AppLayout>
-        <AppRoutes />
-      </AppLayout>
+      <SettingsProvider>
+        <AppLayout>
+          <AppRoutes />
+        </AppLayout>
+      </SettingsProvider>
     </ApolloProvider>
   </Router>
 );
