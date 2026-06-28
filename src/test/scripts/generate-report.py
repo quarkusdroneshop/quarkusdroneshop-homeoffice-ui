@@ -16,7 +16,7 @@ import json
 import os
 import shutil
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 RESULTS_DIR  = sys.argv[1] if len(sys.argv) > 1 else "test-results"
 PROJECT_NAME = sys.argv[2] if len(sys.argv) > 2 else "quarkusdroneshop-homeoffice-ui"
@@ -31,8 +31,9 @@ WAPITI_JSON    = os.path.join(RESULTS_DIR, "wapiti-report.json")
 OUT_DIR        = os.path.join(RESULTS_DIR, "test-report")
 OUT_FILE       = os.path.join(OUT_DIR, "index.html")
 
-now     = datetime.now()
-now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+JST     = timezone(timedelta(hours=9))
+now     = datetime.now(JST)
+now_str = now.strftime("%Y-%m-%d %H:%M:%S JST")
 
 if os.path.exists(OUT_DIR):
     shutil.rmtree(OUT_DIR)
