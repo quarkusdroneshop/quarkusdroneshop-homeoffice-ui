@@ -46,6 +46,20 @@ function formatMs(ms: number): string {
   return `${min}m ${sec}s`;
 }
 
+// デモ用: バックエンドの実処理時間 (ms) をドローン配送日数に換算して表示する。
+// 1ms の処理時間 = DEMO_SCALE ms の配送時間として扱う。
+// DEMO_SCALE = 86_400 → 1秒の処理 ≈ 1日の配送時間
+const DEMO_SCALE = 86_400;
+
+function formatDeliveryTime(ms: number): string {
+  const scaled = ms * DEMO_SCALE;
+  const totalHours = Math.floor(scaled / 3_600_000);
+  const days  = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  if (days > 0) return `${days}日 ${hours}時間`;
+  return `${hours}時間`;
+}
+
 export class AverageOrderTimeChart extends React.Component<{}, State> {
   static contextType = SettingsContext;
   context!: React.ContextType<typeof SettingsContext>;
@@ -108,38 +122,38 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
   render() {
     const { averageOrderUpTime, percentiles } = this.state;
 
-    // averageOrderUpTime はミリ秒単位
     const hasData = typeof averageOrderUpTime === 'number' && averageOrderUpTime > 0;
-    const displayText = hasData ? formatMs(averageOrderUpTime) : '---';
+    const displayText = hasData ? formatDeliveryTime(averageOrderUpTime) : '---';
 
-    // ChartBullet 用: 上限 10分(600000ms) で正規化
-    const MAX_MS = 600_000;
-    const WARN_MS = 120_000;  // 2分
-    const CRIT_MS = 300_000;  // 5分
-    const displayValue = hasData ? Math.min(averageOrderUpTime, MAX_MS) : 1;
+    // ChartBullet 用スケール: デモ配送日数で正規化 (ms単位、DEMO_SCALE 適用後)
+    // 警告: 2日、危険: 5日、上限: 7日
+    const WARN_RAW = Math.round(2 * 86_400_000 / DEMO_SCALE);   // 2日相当の生ms
+    const CRIT_RAW = Math.round(5 * 86_400_000 / DEMO_SCALE);   // 5日相当の生ms
+    const MAX_RAW  = Math.round(7 * 86_400_000 / DEMO_SCALE);   // 7日相当の生ms
+    const displayValue = hasData ? Math.min(averageOrderUpTime, MAX_RAW) : 1;
 
     return (
       <Card isHoverable>
         <CardTitle>
-          Average OrderUp Time: {displayText}
+          平均配送時間 (デモ): {displayText}
         </CardTitle>
         <CardBody>
           <ChartBullet
-            ariaDesc="Order processing performance"
-            ariaTitle="Average Shipping Time"
+            ariaDesc="ドローン配送パフォーマンス"
+            ariaTitle="平均配送時間"
             height={172}
             width={550}
             minDomain={{ y: 0 }}
-            maxDomain={{ y: MAX_MS }}
-            primarySegmentedMeasureData={[{ name: 'Current', y: displayValue }]}
-            comparativeWarningMeasureData={[{ name: 'Warning', y: WARN_MS }]}
-            comparativeErrorMeasureData={[{ name: 'Critical', y: CRIT_MS }]}
+            maxDomain={{ y: MAX_RAW }}
+            primarySegmentedMeasureData={[{ name: '現在', y: displayValue }]}
+            comparativeWarningMeasureData={[{ name: '警告 (2日)', y: WARN_RAW }]}
+            comparativeErrorMeasureData={[{ name: '危険 (5日)', y: CRIT_RAW }]}
             qualitativeRangeData={[
-              { name: 'Bad', y: MAX_MS },
-              { name: 'OK', y: CRIT_MS },
-              { name: 'Good', y: WARN_MS },
+              { name: '7日超', y: MAX_RAW },
+              { name: '5日以内', y: CRIT_RAW },
+              { name: '2日以内', y: WARN_RAW },
             ]}
-            labels={({ datum }) => `${datum.name}: ${formatMs(datum.y)}`}
+            labels={({ datum }) => `${datum.name}: ${formatDeliveryTime(datum.y)}`}
           />
 
           {/* P50 / P95 / P99 パーセンタイル表示 */}
@@ -150,13 +164,13 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
                   <DataListItemCells
                     dataListCells={[
                       <DataListCell key="p50">
-                        <Badge>P50</Badge>&nbsp;{formatMs(percentiles.p50)}
+                        <Badge>P50</Badge>&nbsp;{formatDeliveryTime(percentiles.p50)}
                       </DataListCell>,
                       <DataListCell key="p95">
-                        <Badge style={{ backgroundColor: 'var(--pf-global--warning-color--100)' }}>P95</Badge>&nbsp;{formatMs(percentiles.p95)}
+                        <Badge style={{ backgroundColor: 'var(--pf-global--warning-color--100)' }}>P95</Badge>&nbsp;{formatDeliveryTime(percentiles.p95)}
                       </DataListCell>,
                       <DataListCell key="p99">
-                        <Badge style={{ backgroundColor: 'var(--pf-global--danger-color--100)' }}>P99</Badge>&nbsp;{formatMs(percentiles.p99)}
+                        <Badge style={{ backgroundColor: 'var(--pf-global--danger-color--100)' }}>P99</Badge>&nbsp;{formatDeliveryTime(percentiles.p99)}
                       </DataListCell>,
                     ]}
                   />
@@ -171,10 +185,10 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
                 <DataListItemCells
                   dataListCells={[
                     <DataListCell key="excellent">
-                      Excellent: under {formatMs(WARN_MS)}
+                      優良: 2日以内
                     </DataListCell>,
                     <DataListCell key="objective">
-                      Objective: under {formatMs(CRIT_MS)}
+                      目標: 5日以内
                     </DataListCell>,
                   ]}
                 />
