@@ -5,7 +5,7 @@ console.log("GraphQL Endpoint: " + graphqlEndpoint);
 
 const link = new HttpLink({
   uri: graphqlEndpoint,
-  credentials: 'include',
+  credentials: 'omit',
 });
 
 const cache = new InMemoryCache();

@@ -44,8 +44,8 @@ export class WebItem extends React.Component {
                   <FlexItem>
                   <Title headingLevel="h3" size="xl">Web</Title>
                     <small>
-                      <div>the web front end (no way you saw that coming)</div>
-                      <a>https://github.com/quarkusdroneshop/quarkusdroneshop-web</a>
+                      <div>the web front end</div>
+                      <a href="https://github.com/quarkusdroneshop/quarkusdroneshop-web" target="_blank" rel="noreferrer">https://github.com/quarkusdroneshop/quarkusdroneshop-web</a>
                     </small>
                   </FlexItem>
                   <Flex>

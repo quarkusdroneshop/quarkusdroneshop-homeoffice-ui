@@ -346,9 +346,9 @@ export class SystemComponents extends React.Component<{}, State> {
               <DataListCell key="info">
                 <Flex direction={{ default: 'column' }}>
                   <FlexItem>
-                    <Title headingLevel="h3" size="xl">QDCA10（バリスタ）</Title>
+                    <Title headingLevel="h3" size="xl">QDCA10</Title>
                     <small>
-                      <div>ドローン在庫を管理・ドリンクを準備するサービス</div>
+                      <div>ドローン在庫を管理・発送を手配するサービス</div>
                       <a href="https://github.com/quarkusdroneshop/quarkusdroneshop-barista" target="_blank" rel="noreferrer">
                         github.com/quarkusdroneshop/quarkusdroneshop-barista
                       </a>
@@ -396,9 +396,9 @@ export class SystemComponents extends React.Component<{}, State> {
               <DataListCell key="info">
                 <Flex direction={{ default: 'column' }}>
                   <FlexItem>
-                    <Title headingLevel="h3" size="xl">QDCA10Pro（キッチン）</Title>
+                    <Title headingLevel="h3" size="xl">QDCA10Pro</Title>
                     <small>
-                      <div>食品在庫を管理・フードを準備するサービス</div>
+                      <div>ドローン在庫を管理・発送を手配するサービス</div>
                       <a href="https://github.com/quarkusdroneshop/quarkusdroneshop-kitchen" target="_blank" rel="noreferrer">
                         github.com/quarkusdroneshop/quarkusdroneshop-kitchen
                       </a>
