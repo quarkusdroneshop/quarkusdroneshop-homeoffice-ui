@@ -21,30 +21,23 @@ describe('OrderBoard コンポーネント', () => {
   test('ページタイトルが表示される', async () => {
     await act(async () => { renderOrderBoard(); });
     await waitFor(() => {
-      expect(screen.getByText('リアルタイム注文ボード')).toBeInTheDocument();
+      expect(screen.getByText('Real-Time Order Board')).toBeInTheDocument();
     });
   });
 
-  test('3 列（注文受付・処理中・OrderUp）が表示される', async () => {
+  test('3 列（In Queue・In Progress・Order Up）が表示される', async () => {
     await act(async () => { renderOrderBoard(); });
     await waitFor(() => {
-      expect(screen.getByText('注文受付')).toBeInTheDocument();
-      expect(screen.getByText('処理中')).toBeInTheDocument();
-      expect(screen.getByText('OrderUp')).toBeInTheDocument();
+      expect(screen.getByText('In Queue')).toBeInTheDocument();
+      expect(screen.getByText('In Progress')).toBeInTheDocument();
+      expect(screen.getByText('Order Up')).toBeInTheDocument();
     });
   });
 
-  test('GraphQL 未接続時にデモデータが表示される', async () => {
+  test('GraphQL 未接続時にエラーが表示される', async () => {
     await act(async () => { renderOrderBoard(); });
     await waitFor(() => {
-      expect(screen.getByText('田中 太郎')).toBeInTheDocument();
-    });
-  });
-
-  test('デモデータに処理中の注文が含まれる', async () => {
-    await act(async () => { renderOrderBoard(); });
-    await waitFor(() => {
-      expect(screen.getByText('佐藤 一郎')).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toBeInTheDocument();
     });
   });
 });

@@ -93,16 +93,6 @@ const SITE_OPTIONS: { key: SiteKey; label: string }[] = [
   { key: 'C',   label: 'Site C (49dgc)' },
 ];
 
-// Demo orders shown when no backend data is available
-const now = Date.now();
-const DEMO_ORDERS: LiveOrder[] = [
-  { orderId: 'demo-001', name: 'Alice Johnson', item: 'QDCA10',    status: 'IN_QUEUE',    site: 'hnkwm', createdAt: new Date(now - 45000).toISOString() },
-  { orderId: 'demo-002', name: 'Bob Smith',     item: 'QDCA10Pro', status: 'IN_QUEUE',    site: 'mnlq9', createdAt: new Date(now - 30000).toISOString() },
-  { orderId: 'demo-003', name: 'Carol Davis',   item: 'QDCA10',    status: 'IN_PROGRESS', site: '49dgc', madeBy: 'QDCA10-1', createdAt: new Date(now - 120000).toISOString(), updatedAt: new Date(now - 60000).toISOString() },
-  { orderId: 'demo-004', name: 'Dave Wilson',   item: 'QDCA10Pro', status: 'IN_PROGRESS', site: 'hnkwm', madeBy: 'QDCA10Pro-2', createdAt: new Date(now - 180000).toISOString(), updatedAt: new Date(now - 90000).toISOString() },
-  { orderId: 'demo-005', name: 'Eve Martinez',  item: 'QDCA10',    status: 'FULFILLED',   site: 'mnlq9', madeBy: 'QDCA10-3', createdAt: new Date(now - 300000).toISOString(), updatedAt: new Date(now - 150000).toISOString() },
-  { orderId: 'demo-006', name: 'Frank Lee',     item: 'QDCA10Pro', status: 'FULFILLED',   site: '49dgc', madeBy: 'QDCA10Pro-1', createdAt: new Date(now - 360000).toISOString(), updatedAt: new Date(now - 200000).toISOString() },
-];
 
 function elapsedLabel(isoStr: string): string {
   const diffSec = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
@@ -127,7 +117,6 @@ export class OrderBoard extends React.Component<{}, State> {
   static contextType = SettingsContext;
   context!: React.ContextType<typeof SettingsContext>;
   private intervalId: number | null = null;
-  private isDemo = false;
 
   constructor(props: {}) {
     super(props);
@@ -150,29 +139,15 @@ export class OrderBoard extends React.Component<{}, State> {
       .query({ query: GET_LIVE_ORDERS, fetchPolicy: 'no-cache' })
       .then(res => {
         const all: LiveOrder[] = res?.data?.liveOrders ?? [];
-        if (all.length === 0 && !this.isDemo) {
-          // Backend returned empty — fall back to demo data
-          this.isDemo = true;
-          const orders = DEMO_ORDERS.slice(0, MAX_ORDERS);
-          this.setState({ orders, loading: false, error: null });
-        } else if (all.length > 0) {
-          this.isDemo = false;
-          const orders = all
-            .slice()
-            .sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())
-            .slice(0, MAX_ORDERS);
-          this.setState({ orders, loading: false, error: null });
-        } else {
-          // Still in demo mode — refresh demo timestamps so elapsed times stay current
-          this.setState({ orders: DEMO_ORDERS, loading: false, error: null });
-        }
+        const orders = all
+          .slice()
+          .sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())
+          .slice(0, MAX_ORDERS);
+        this.setState({ orders, loading: false, error: null });
       })
       .catch((err) => {
         console.error('LiveOrders GraphQL error:', err);
-        if (!this.isDemo) {
-          this.isDemo = true;
-          this.setState({ orders: DEMO_ORDERS, loading: false, error: null });
-        }
+        this.setState({ loading: false, error: String(err) });
       });
   }
 
@@ -198,7 +173,6 @@ export class OrderBoard extends React.Component<{}, State> {
                 <Text component="h1">Real-Time Order Board</Text>
                 <Text component="p">
                   Live order progress — polling every 3s (last {MAX_ORDERS} orders)
-                  {this.isDemo && <span style={{ color: '#f0ab00', marginLeft: 8 }}>[DEMO DATA]</span>}
                 </Text>
               </TextContent>
             </FlexItem>
