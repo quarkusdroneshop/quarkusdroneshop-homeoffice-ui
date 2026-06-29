@@ -166,7 +166,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
           <ChartBullet
             ariaDesc="Order processing performance"
             ariaTitle="Average OrderUp Time"
-            height={172}
+            height={250}
             width={550}
             minDomain={{ y: 0 }}
             maxDomain={{ y: MAX_VAL }}

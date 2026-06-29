@@ -69,16 +69,16 @@ type State = {
 };
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString('ja-JP');
+  return new Date(iso).toLocaleString('en-US');
 }
 
 function reasonLabel(code: string): string {
   const map: Record<string, string> = {
-    INVENTORY_DEPLETED: '在庫不足',
-    PAYMENT_TIMEOUT: '決済タイムアウト',
-    DRONE_MALFUNCTION: 'ドローン障害',
-    NETWORK_ERROR: 'ネットワークエラー',
-    UNKNOWN: '不明なエラー',
+    INVENTORY_DEPLETED: 'Inventory Depleted',
+    PAYMENT_TIMEOUT:    'Payment Timeout',
+    DRONE_MALFUNCTION:  'Drone Malfunction',
+    NETWORK_ERROR:      'Network Error',
+    UNKNOWN:            'Unknown Error',
   };
   return map[code] ?? code;
 }
@@ -107,7 +107,7 @@ class SupportPage extends React.Component<ISupportProps, State> {
         console.error('FailedOrders GraphQL error:', err);
         this.setState({
           loading: false,
-          errorMsg: 'バックエンドへの接続に失敗しました。しばらく待ってから「更新」を押してください。',
+          errorMsg: 'Failed to connect to backend. Please wait and click Refresh.',
         });
       });
   }
@@ -123,7 +123,7 @@ class SupportPage extends React.Component<ISupportProps, State> {
           retrying.delete(orderId);
           return {
             retrying,
-            successMsg: result?.message ?? `注文 ${orderId} のリトライを送信しました`,
+            successMsg: result?.message ?? `Retry submitted for order ${orderId}`,
             orders: prev.orders.filter(o => o.orderId !== orderId),
           };
         });
@@ -132,7 +132,7 @@ class SupportPage extends React.Component<ISupportProps, State> {
         this.setState(prev => {
           const retrying = new Set(prev.retrying);
           retrying.delete(orderId);
-          return { retrying, errorMsg: `注文 ${orderId} のリトライに失敗しました` };
+          return { retrying, errorMsg: `Failed to retry order ${orderId}` };
         });
       });
   }
@@ -145,7 +145,7 @@ class SupportPage extends React.Component<ISupportProps, State> {
         <PageSection variant={PageSectionVariants.light}>
           <TextContent>
             <Text component="h1">Support</Text>
-            <Text component="p">DLQ（Dead Letter Queue）の失敗注文一覧と障害履歴を管理します</Text>
+            <Text component="p">Manage failed orders in the Dead Letter Queue (DLQ) and review failure history</Text>
           </TextContent>
         </PageSection>
 
@@ -188,13 +188,13 @@ class SupportPage extends React.Component<ISupportProps, State> {
                         <ExclamationTriangleIcon style={{ color: '#fff', fontSize: '16px' }} />
                       </span>
                       <span style={{ color: '#c9190b', fontWeight: 700, fontSize: '1.1rem' }}>
-                        失敗注文 (DLQ) — 要対応
+                        Failed Orders (DLQ) — Action Required
                       </span>
                     </span>
                   ) : (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                       <CheckCircleIcon style={{ color: '#3e8635', fontSize: '18px' }} />
-                      <span>失敗注文 (DLQ)</span>
+                      <span>Failed Orders (DLQ)</span>
                     </span>
                   )}
                 </FlexItem>
@@ -208,7 +208,7 @@ class SupportPage extends React.Component<ISupportProps, State> {
                 </FlexItem>
                 <FlexItem align={{ default: 'alignRight' }}>
                   <Button variant="secondary" onClick={this.loadData} isDisabled={loading}>
-                    更新
+                    Refresh
                   </Button>
                 </FlexItem>
               </Flex>
@@ -219,8 +219,8 @@ class SupportPage extends React.Component<ISupportProps, State> {
               ) : orders.length === 0 ? (
                 <EmptyState>
                   <EmptyStateIcon icon={CheckCircleIcon} />
-                  <Title headingLevel="h2" size="lg">失敗注文なし</Title>
-                  <EmptyStateBody>現在 DLQ にキューされている注文はありません</EmptyStateBody>
+                  <Title headingLevel="h2" size="lg">No Failed Orders</Title>
+                  <EmptyStateBody>There are currently no orders queued in the DLQ</EmptyStateBody>
                 </EmptyState>
               ) : (
                 orders.map(order => (
@@ -230,11 +230,11 @@ class SupportPage extends React.Component<ISupportProps, State> {
                         <FlexItem flex={{ default: 'flex_1' }}>
                           <strong>{order.orderId}</strong> — {order.name}
                           <br />
-                          <small>商品: {order.item}</small>
+                          <small>Item: {order.item}</small>
                           <br />
                           <Badge>{reasonLabel(order.failureReason)}</Badge>
                           <small style={{ marginLeft: '8px', color: 'var(--pf-global--Color--200)' }}>
-                            {formatTime(order.failedAt)} / リトライ {order.retryCount} 回
+                            {formatTime(order.failedAt)} / Retries: {order.retryCount}
                           </small>
                         </FlexItem>
                         <FlexItem>
@@ -245,7 +245,7 @@ class SupportPage extends React.Component<ISupportProps, State> {
                             isDisabled={retrying.has(order.orderId)}
                             onClick={() => this.retryOrder(order.orderId)}
                           >
-                            リトライ
+                            Retry
                           </Button>
                         </FlexItem>
                       </Flex>

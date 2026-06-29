@@ -56,25 +56,26 @@ type State = {
 };
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
-  IN_QUEUE: '注文受付',
-  IN_PROGRESS: '処理中',
-  FULFILLED: 'OrderUp',
+  IN_QUEUE:    'In Queue',
+  IN_PROGRESS: 'In Progress',
+  FULFILLED:   'Order Up',
 };
 
 const STATUS_COLORS: Record<OrderStatus, 'blue' | 'orange' | 'green'> = {
-  IN_QUEUE: 'blue',
+  IN_QUEUE:    'blue',
   IN_PROGRESS: 'orange',
-  FULFILLED: 'green',
+  FULFILLED:   'green',
 };
 
 const COLUMNS: OrderStatus[] = ['IN_QUEUE', 'IN_PROGRESS', 'FULFILLED'];
+const MAX_ORDERS = 50;
 
 function elapsedLabel(isoStr: string): string {
   const diffSec = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
-  if (diffSec < 60) return `${diffSec}秒前`;
+  if (diffSec < 60) return `${diffSec}s ago`;
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}分前`;
-  return `${Math.floor(diffMin / 60)}時間前`;
+  if (diffMin < 60) return `${diffMin}m ago`;
+  return `${Math.floor(diffMin / 60)}h ago`;
 }
 
 export class OrderBoard extends React.Component<{}, State> {
@@ -102,12 +103,17 @@ export class OrderBoard extends React.Component<{}, State> {
     client
       .query({ query: GET_LIVE_ORDERS, fetchPolicy: 'no-cache' })
       .then(res => {
-        const orders: LiveOrder[] = res?.data?.liveOrders ?? [];
+        const all: LiveOrder[] = res?.data?.liveOrders ?? [];
+        // keep only the most recent MAX_ORDERS orders
+        const orders = all
+          .slice()
+          .sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())
+          .slice(0, MAX_ORDERS);
         this.setState({ orders, loading: false, error: null });
       })
       .catch((err) => {
         console.error('LiveOrders GraphQL error:', err);
-        this.setState({ loading: false, error: 'バックエンドに接続できません。しばらく待ってから更新してください。' });
+        this.setState({ loading: false, error: 'Cannot connect to backend. Please wait and try refreshing.' });
       });
   }
 
@@ -126,8 +132,8 @@ export class OrderBoard extends React.Component<{}, State> {
       <React.Fragment>
         <PageSection variant={PageSectionVariants.light}>
           <TextContent>
-            <Text component="h1">リアルタイム注文ボード</Text>
-            <Text component="p">注文の進捗状況をリアルタイムで表示します（3秒ポーリング）</Text>
+            <Text component="h1">Real-Time Order Board</Text>
+            <Text component="p">Live order progress — polling every 3 seconds (last {MAX_ORDERS} orders)</Text>
           </TextContent>
         </PageSection>
         <Divider component="div" />
@@ -153,8 +159,8 @@ export class OrderBoard extends React.Component<{}, State> {
                       {colOrders.length === 0 ? (
                         <EmptyState variant="xs">
                           <EmptyStateIcon icon={CubeIcon} />
-                          <Title headingLevel="h4" size="md">なし</Title>
-                          <EmptyStateBody>この列に注文はありません</EmptyStateBody>
+                          <Title headingLevel="h4" size="md">None</Title>
+                          <EmptyStateBody>No orders in this column</EmptyStateBody>
                         </EmptyState>
                       ) : (
                         colOrders.map(order => (
@@ -173,7 +179,7 @@ export class OrderBoard extends React.Component<{}, State> {
                                 </FlexItem>
                                 {order.madeBy && (
                                   <FlexItem>
-                                    <small>担当: {order.madeBy}</small>
+                                    <small>By: {order.madeBy}</small>
                                   </FlexItem>
                                 )}
                                 <FlexItem>

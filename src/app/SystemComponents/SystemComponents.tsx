@@ -65,7 +65,7 @@ interface ComponentMeta {
   stargazersCount: number;
   forksCount: number;
   openIssuesCount: number;
-  weeklyCommits: number[];   // last 4 weeks, oldest→newest
+  weeklyCommits: number[];   // last 26 weeks, oldest→newest
   health: 'ok' | 'warn' | 'unknown';
 }
 
@@ -81,21 +81,21 @@ interface State {
 }
 
 const REPOS: Record<string, { repo: string; label: string; desc: string }> = {
-  Web:           { repo: 'quarkusdroneshop/quarkusdroneshop-web',           label: 'Web',             desc: '注文受付 Web フロントエンド' },
-  Counter:       { repo: 'quarkusdroneshop/quarkusdroneshop-counter',       label: 'Counter',         desc: 'イベント調整・注文ルーティング' },
-  QDCA10:        { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10',        label: 'QDCA10',          desc: 'DroneA10シリーズ 在庫管理・発送サービス' },
-  QDCA10Pro:     { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10pro',     label: 'QDCA10Pro',       desc: 'DroneA10Proシリーズ 在庫管理・発送サービス' },
-  Inventory:     { repo: 'quarkusdroneshop/quarkusdroneshop-inventory',     label: 'Inventory',       desc: 'Drone在庫管理・補充サービス' },
-  Homeoffice:    { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice',    label: 'Homeoffice',      desc: 'バックエンド GraphQL API サービス' },
-  HomeofficUI:   { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice-ui', label: 'Homeoffice UI',   desc: 'ホームオフィス管理ダッシュボード' },
+  Web:           { repo: 'quarkusdroneshop/quarkusdroneshop-web',           label: 'Web',           desc: 'Order intake web frontend' },
+  Counter:       { repo: 'quarkusdroneshop/quarkusdroneshop-counter',       label: 'Counter',       desc: 'Event coordination and order routing' },
+  QDCA10:        { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10',        label: 'QDCA10',        desc: 'DroneA10 series inventory and dispatch service' },
+  QDCA10Pro:     { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10pro',     label: 'QDCA10Pro',     desc: 'DroneA10Pro series inventory and dispatch service' },
+  Inventory:     { repo: 'quarkusdroneshop/quarkusdroneshop-inventory',     label: 'Inventory',     desc: 'Drone inventory management and replenishment' },
+  Homeoffice:    { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice',    label: 'Homeoffice',    desc: 'Backend GraphQL API service' },
+  HomeofficUI:   { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice-ui', label: 'Homeoffice UI', desc: 'Home office management dashboard' },
 };
 
 function relativeTime(iso: string): string {
-  if (!iso) return '不明';
+  if (!iso) return 'Unknown';
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 3600)  return `${Math.floor(diff / 60)} 分前`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} 時間前`;
-  return `${Math.floor(diff / 86400)} 日前`;
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
 }
 
 const defaultMeta: ComponentMeta = {
@@ -104,7 +104,7 @@ const defaultMeta: ComponentMeta = {
   stargazersCount: 0,
   forksCount: 0,
   openIssuesCount: 0,
-  weeklyCommits: [0, 0, 0, 0],
+  weeklyCommits: new Array(26).fill(0),
   health: 'unknown',
 };
 
@@ -120,7 +120,7 @@ export class SystemComponents extends React.Component<{}, State> {
       selectedDataListItemId: '',
       inventory: [],
       inventoryLoading: true,
-      github: Object.fromEntries(Object.keys(REPOS).map(k => [k, { ...defaultMeta }])),
+      github: Object.fromEntries(Object.keys(REPOS).map(k => [k, { ...defaultMeta, weeklyCommits: new Array(26).fill(0) }])),
       backendHealth: 'checking',
     };
     this.onCloseDrawerClick = this.onCloseDrawerClick.bind(this);
@@ -159,16 +159,15 @@ export class SystemComponents extends React.Component<{}, State> {
 
   loadGitHub() {
     Object.entries(REPOS).forEach(([key, { repo }]) => {
-      // fetch repo info + commit activity in parallel
       Promise.all([
         fetch(`https://api.github.com/repos/${repo}`).then(r => r.json()),
         fetch(`https://api.github.com/repos/${repo}/stats/commit_activity`).then(r => r.json()),
       ])
         .then(([repoData, activity]) => {
-          // activity = array of 52 weekly objects {week, total, days[]}
-          let weeklyCommits = [0, 0, 0, 0];
-          if (Array.isArray(activity) && activity.length >= 4) {
-            weeklyCommits = activity.slice(-4).map((w: { total: number }) => w.total);
+          // activity = 52 weekly objects; take last 26 (≈ 6 months)
+          let weeklyCommits = new Array(26).fill(0);
+          if (Array.isArray(activity) && activity.length >= 26) {
+            weeklyCommits = activity.slice(-26).map((w: { total: number }) => w.total);
           }
           const daysSincePush = repoData.pushed_at
             ? Math.floor((Date.now() - new Date(repoData.pushed_at).getTime()) / 86400000)
@@ -228,7 +227,6 @@ export class SystemComponents extends React.Component<{}, State> {
     this.setState({ isDrawerExpanded: false, selectedDataListItemId: '' });
   }
 
-  // GitHub meta badges
   ghBadge(key: string) {
     const g = this.state.github[key];
     if (g.loading) return <Spinner size="sm" />;
@@ -237,57 +235,65 @@ export class SystemComponents extends React.Component<{}, State> {
         <FlexItem><CodeBranchIcon /> {g.forksCount} forks</FlexItem>
         <FlexItem><CubeIcon /> {g.openIssuesCount} issues</FlexItem>
         {g.pushedAt ? (
-          <FlexItem>更新: {relativeTime(g.pushedAt)}</FlexItem>
+          <FlexItem>Updated: {relativeTime(g.pushedAt)}</FlexItem>
         ) : (
-          <FlexItem><ExclamationTriangleIcon color="orange" /> 未取得</FlexItem>
+          <FlexItem><ExclamationTriangleIcon color="orange" /> Not fetched</FlexItem>
         )}
       </Flex>
     );
   }
 
-  // Health label
   healthLabel(key: string, overrideHealth?: 'ok' | 'error' | 'checking') {
-    if (overrideHealth === 'checking') return <Label color="blue" isCompact><Spinner size="sm" /> 確認中</Label>;
-    if (overrideHealth === 'error') return <Label color="red" isCompact><ExclamationTriangleIcon /> 応答なし</Label>;
-    if (overrideHealth === 'ok') return <Label color="green" isCompact><CheckCircleIcon /> 正常稼働</Label>;
+    if (overrideHealth === 'checking') return <Label color="blue" isCompact><Spinner size="sm" /> Checking</Label>;
+    if (overrideHealth === 'error')    return <Label color="red" isCompact><ExclamationTriangleIcon /> No Response</Label>;
+    if (overrideHealth === 'ok')       return <Label color="green" isCompact><CheckCircleIcon /> Running</Label>;
 
     const g = this.state.github[key];
-    if (g.loading) return <Label color="blue" isCompact><Spinner size="sm" /></Label>;
-    if (g.health === 'ok') return <Label color="green" isCompact><CheckCircleIcon /> 正常</Label>;
-    if (g.health === 'warn') return <Label color="orange" isCompact><ExclamationTriangleIcon /> 要確認</Label>;
-    return <Label color="grey" isCompact>不明</Label>;
+    if (g.loading)          return <Label color="blue" isCompact><Spinner size="sm" /></Label>;
+    if (g.health === 'ok')   return <Label color="green" isCompact><CheckCircleIcon /> OK</Label>;
+    if (g.health === 'warn') return <Label color="orange" isCompact><ExclamationTriangleIcon /> Check</Label>;
+    return <Label color="grey" isCompact>Unknown</Label>;
   }
 
-  // Weekly commit bar chart (last 4 weeks)
+  // Commit bar chart — last 26 weeks (≈ 6 months)
   commitChart(key: string) {
     const g = this.state.github[key];
     if (g.loading) return <Spinner size="md" />;
-    const data = g.weeklyCommits.map((y, i) => ({ x: `W-${3 - i}`, y }));
-    const maxY = Math.max(...g.weeklyCommits, 1);
+
+    const weeks = g.weeklyCommits;
+    // label every 4th week; others blank
+    const data = weeks.map((y, i) => ({
+      x: (i % 4 === 0) ? `W-${25 - i}` : '',
+      y,
+    }));
+    const maxY = Math.max(...weeks, 1);
+
     return (
-      <div style={{ height: 110, width: 360 }}>
+      <div style={{ height: 110, width: 500 }}>
         <ChartGroup
-          ariaDesc="Monthly commits"
-          ariaTitle="直近1ヶ月コミット数"
-          domainPadding={{ x: 30 }}
+          ariaDesc="6-month commit history"
+          ariaTitle="Commits (last 26 weeks)"
+          domainPadding={{ x: 8 }}
           height={90}
-          width={360}
+          width={500}
           padding={{ top: 8, bottom: 28, left: 36, right: 12 }}
           domain={{ y: [0, maxY + 1] }}
-          containerComponent={<ChartVoronoiContainer constrainToVisibleArea />}
+          containerComponent={<ChartVoronoiContainer constrainToVisibleArea labels={({ datum }) => `W-${25 - datum.index}: ${datum.y} commits`} />}
         >
           <ChartBar
             data={data}
-            style={{ data: { fill: '#0066cc', width: 48 } }}
+            style={{ data: { fill: '#0066cc', width: 12 } }}
           />
         </ChartGroup>
-        <Text component="small" style={{ display: 'block', textAlign: 'center' }}>直近4週コミット数</Text>
+        <Text component="small" style={{ display: 'block', textAlign: 'center' }}>
+          Commits — last 6 months (26 weeks)
+        </Text>
       </div>
     );
   }
 
   inventoryDetail(items: InventoryLevel[]) {
-    if (items.length === 0) return <Text>在庫データなし</Text>;
+    if (items.length === 0) return <Text>No inventory data</Text>;
     return (
       <DataList aria-label="inventory detail">
         {items.map(i => {
@@ -342,7 +348,7 @@ export class SystemComponents extends React.Component<{}, State> {
               <Stack>
                 <StackItem>
                   <Button variant={ButtonVariant.secondary}
-                    onClick={() => this.openDrawer(key, `${label} 詳細`, drawerBody)}>
+                    onClick={() => this.openDrawer(key, `${label} Details`, drawerBody)}>
                     Detail
                   </Button>
                 </StackItem>
@@ -401,23 +407,18 @@ export class SystemComponents extends React.Component<{}, State> {
         selectedDataListItemId={selectedDataListItemId}
         onSelectDataListItem={id => this.setState({ selectedDataListItemId: id })}
       >
-        {/* Web */}
         {this.componentRow('Web', this.commitChart('Web'),
-          <Text>GitHub リポジトリ情報は左パネルを参照してください。</Text>)}
+          <Text>See left panel for GitHub repository information.</Text>)}
 
-        {/* Counter */}
         {this.componentRow('Counter', this.commitChart('Counter'),
-          <Text>GitHub リポジトリ情報は左パネルを参照してください。</Text>)}
+          <Text>See left panel for GitHub repository information.</Text>)}
 
-        {/* QDCA10 */}
         {this.componentRow('QDCA10', this.commitChart('QDCA10'),
           this.inventoryDetail(droneItems))}
 
-        {/* QDCA10Pro */}
         {this.componentRow('QDCA10Pro', this.commitChart('QDCA10Pro'),
           this.inventoryDetail(foodItems))}
 
-        {/* Inventory */}
         {this.componentRow('Inventory',
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
             {inventoryLoading ? <Spinner size="md" /> : inventorySummary}
@@ -425,18 +426,16 @@ export class SystemComponents extends React.Component<{}, State> {
           </div>,
           this.inventoryDetail(inventory))}
 
-        {/* Homeoffice (backend) — uses live GraphQL health */}
         {this.componentRow('Homeoffice', this.commitChart('Homeoffice'),
           <TextContent>
-            <Text><strong>GraphQL エンドポイント</strong> 経由で正常性を確認しています。</Text>
-            <Text>ステータス: {backendHealth === 'ok' ? '✅ 正常応答' : backendHealth === 'error' ? '❌ 応答なし' : '⏳ 確認中'}</Text>
+            <Text><strong>GraphQL endpoint</strong> health check in progress.</Text>
+            <Text>Status: {backendHealth === 'ok' ? '✅ Responding' : backendHealth === 'error' ? '❌ No response' : '⏳ Checking'}</Text>
           </TextContent>,
           backendHealth)}
 
-        {/* Homeoffice UI */}
         {this.componentRow('HomeofficUI', this.commitChart('HomeofficUI'),
           <TextContent>
-            <Text>本アプリケーション自体です。ブラウザで正常に表示されていれば稼働中です。</Text>
+            <Text>This application itself. If the dashboard is visible, the service is running.</Text>
           </TextContent>,
           'ok')}
       </DataList>
@@ -446,8 +445,8 @@ export class SystemComponents extends React.Component<{}, State> {
       <React.Fragment>
         <PageSection variant={PageSectionVariants.light}>
           <TextContent>
-            <Text component="h1">システムコンポーネント</Text>
-            <Text component="p">各マイクロサービスの状態・在庫情報・直近1ヶ月のコミット活動</Text>
+            <Text component="h1">System Components</Text>
+            <Text component="p">Status, inventory levels, and 6-month commit activity for each microservice</Text>
           </TextContent>
         </PageSection>
         <Divider component="div" />
