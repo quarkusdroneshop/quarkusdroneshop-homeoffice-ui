@@ -65,10 +65,9 @@ export class Dashboard extends React.Component {
             </LevelItem>
 
             <LevelItem>
-              <LabelGroup categoryName="表示切替">
+              <LabelGroup categoryName="Display">
                 {sectionLabel('orderUp', 'OrderUp')}
                 {sectionLabel('sales', 'Sales')}
-                {sectionLabel('inventory', 'Inventory')}
               </LabelGroup>
             </LevelItem>
 

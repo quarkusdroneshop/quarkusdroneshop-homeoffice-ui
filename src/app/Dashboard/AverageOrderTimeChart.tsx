@@ -156,7 +156,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
           <span>Average OrderUp Time: {displayText}</span>
           <Checkbox
             id="demo-mode-toggle"
-            label="デモ表示"
+            label="Only DEMO"
             isChecked={demoMode}
             onChange={(checked) => this.setState({ demoMode: checked })}
             style={{ marginLeft: '16px', fontWeight: 'normal', fontSize: '0.85rem' }}

@@ -83,11 +83,11 @@ interface State {
 const REPOS: Record<string, { repo: string; label: string; desc: string }> = {
   Web:           { repo: 'quarkusdroneshop/quarkusdroneshop-web',           label: 'Web',             desc: '注文受付 Web フロントエンド' },
   Counter:       { repo: 'quarkusdroneshop/quarkusdroneshop-counter',       label: 'Counter',         desc: 'イベント調整・注文ルーティング' },
-  QDCA10:        { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10',        label: 'QDCA10',          desc: 'ドローン A10 在庫管理・発送サービス' },
-  QDCA10Pro:     { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10pro',     label: 'QDCA10Pro',       desc: 'ドローン A10Pro 在庫管理・発送サービス' },
-  Inventory:     { repo: 'quarkusdroneshop/quarkusdroneshop-inventory',     label: 'Inventory',       desc: 'ドローン・食品在庫管理・補充サービス' },
+  QDCA10:        { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10',        label: 'QDCA10',          desc: 'DroneA10シリーズ 在庫管理・発送サービス' },
+  QDCA10Pro:     { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10pro',     label: 'QDCA10Pro',       desc: 'DroneA10Proシリーズ 在庫管理・発送サービス' },
+  Inventory:     { repo: 'quarkusdroneshop/quarkusdroneshop-inventory',     label: 'Inventory',       desc: 'Drone在庫管理・補充サービス' },
   Homeoffice:    { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice',    label: 'Homeoffice',      desc: 'バックエンド GraphQL API サービス' },
-  HomeofficUI:   { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice-ui', label: 'Homeoffice UI',   desc: 'ホームオフィス管理ダッシュボード (本アプリ)' },
+  HomeofficUI:   { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice-ui', label: 'Homeoffice UI',   desc: 'ホームオフィス管理ダッシュボード' },
 };
 
 function relativeTime(iso: string): string {

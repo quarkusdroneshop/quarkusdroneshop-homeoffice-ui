@@ -34,7 +34,6 @@ describe('Dashboard コンポーネント', () => {
     renderDashboard();
     expect(screen.getByText('OrderUp')).toBeInTheDocument();
     expect(screen.getByText('Sales')).toBeInTheDocument();
-    expect(screen.getByText('Inventory')).toBeInTheDocument();
   });
 
   test('チャートコンポーネントがレンダリングされる', () => {
