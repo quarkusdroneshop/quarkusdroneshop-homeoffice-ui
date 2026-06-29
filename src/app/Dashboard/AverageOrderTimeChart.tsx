@@ -151,7 +151,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
     const benchObj  = demoMode ? '目標: 5日以内' : '目標: 5分以内';
 
     return (
-      <Card isHoverable>
+      <Card isHoverable style={{ width: '100%', minWidth: '480px' }}>
         <CardTitle style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>Average OrderUp Time: {displayText}</span>
           <Checkbox

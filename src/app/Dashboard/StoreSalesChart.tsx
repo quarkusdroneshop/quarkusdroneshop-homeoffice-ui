@@ -117,7 +117,7 @@ export class StoreSalesChart extends React.Component {
       const productLegend = this.state.productLegend || [];
   
       return (
-        <Card style={{ height: '300px', width: '500px' }}>
+        <Card style={{ width: '100%', minWidth: '480px' }}>
           <CardTitle>Store Sales</CardTitle>
           <CardBody>
             <Chart

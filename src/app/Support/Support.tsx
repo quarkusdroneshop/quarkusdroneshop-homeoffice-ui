@@ -169,15 +169,42 @@ class SupportPage extends React.Component<ISupportProps, State> {
             />
           )}
 
-          <Card>
+          <Card style={orders.length > 0 ? { borderLeft: '4px solid #c9190b' } : {}}>
             <CardTitle>
               <Flex alignItems={{ default: 'alignItemsCenter' }}>
                 <FlexItem>
-                  <ExclamationTriangleIcon color="var(--pf-global--warning-color--100)" />
-                  &nbsp;失敗注文 (DLQ)
+                  {orders.length > 0 ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '32px',
+                        height: '32px',
+                        backgroundColor: '#c9190b',
+                        borderRadius: '50%',
+                        animation: 'dlq-pulse 1.5s ease-in-out infinite',
+                      }}>
+                        <ExclamationTriangleIcon style={{ color: '#fff', fontSize: '16px' }} />
+                      </span>
+                      <span style={{ color: '#c9190b', fontWeight: 700, fontSize: '1.1rem' }}>
+                        失敗注文 (DLQ) — 要対応
+                      </span>
+                    </span>
+                  ) : (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <CheckCircleIcon style={{ color: '#3e8635', fontSize: '18px' }} />
+                      <span>失敗注文 (DLQ)</span>
+                    </span>
+                  )}
                 </FlexItem>
                 <FlexItem>
-                  <Badge isRead={orders.length === 0}>{loading ? '...' : orders.length}</Badge>
+                  <Badge
+                    isRead={orders.length === 0}
+                    style={orders.length > 0 ? { backgroundColor: '#c9190b', color: '#fff' } : {}}
+                  >
+                    {loading ? '...' : orders.length}
+                  </Badge>
                 </FlexItem>
                 <FlexItem align={{ default: 'alignRight' }}>
                   <Button variant="secondary" onClick={this.loadData} isDisabled={loading}>

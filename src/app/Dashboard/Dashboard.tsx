@@ -60,7 +60,7 @@ export class Dashboard extends React.Component {
           <Level hasGutter>
             <LevelItem>
               <TextContent>
-                <Text component="h1">Dashboard</Text>
+                <Text component="h1" style={{ fontSize: '2rem', fontWeight: 700 }}>Dashboard</Text>
               </TextContent>
             </LevelItem>
 
@@ -91,14 +91,10 @@ export class Dashboard extends React.Component {
         {/* 注文時間・売上チャート */}
         {visibleSections.orderUp && (
           <PageSection variant={PageSectionVariants.default}>
-            <Flex gap={{ default: 'gapLg' }} wrap={{ default: 'wrap' }}>
-              <FlexItem>
-                <StoreSalesChart />
-              </FlexItem>
-              <FlexItem>
-                <AverageOrderTimeChart />
-              </FlexItem>
-            </Flex>
+            <div className="equal-height-panels">
+              <StoreSalesChart />
+              <AverageOrderTimeChart />
+            </div>
           </PageSection>
         )}
 
