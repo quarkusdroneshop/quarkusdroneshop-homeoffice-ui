@@ -28,20 +28,27 @@ import {
   TextContent,
   Spinner,
   Label,
+  DescriptionList,
+  DescriptionListGroup,
+  DescriptionListTerm,
+  DescriptionListDescription,
 } from '@patternfly/react-core';
 
 import {
   ChartBar,
   ChartGroup,
   ChartVoronoiContainer,
+  ChartAxis,
 } from '@patternfly/react-charts';
 
 import CodeBranchIcon from '@patternfly/react-icons/dist/js/icons/code-branch-icon';
 import CubeIcon from '@patternfly/react-icons/dist/js/icons/cube-icon';
 import CheckCircleIcon from '@patternfly/react-icons/dist/js/icons/check-circle-icon';
 import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import StarIcon from '@patternfly/react-icons/dist/js/icons/star-icon';
 import { gql } from '@apollo/client';
 import client from 'src/apolloclient';
+import { publishSystemAlerts } from '@app/utils/systemHealthStore';
 
 const GET_INVENTORY = gql`
   query InventoryLevels {
@@ -59,13 +66,18 @@ interface InventoryLevel {
   capacity: number;
 }
 
+interface WeekData {
+  week: number;   // Unix timestamp (Monday of that week)
+  total: number;
+}
+
 interface ComponentMeta {
   loading: boolean;
   pushedAt: string;
   stargazersCount: number;
   forksCount: number;
   openIssuesCount: number;
-  weeklyCommits: number[];   // last 26 weeks, oldest→newest
+  weeklyData: WeekData[];   // last 26 weeks, oldest→newest
   health: 'ok' | 'warn' | 'unknown';
 }
 
@@ -81,13 +93,13 @@ interface State {
 }
 
 const REPOS: Record<string, { repo: string; label: string; desc: string }> = {
-  Web:           { repo: 'quarkusdroneshop/quarkusdroneshop-web',           label: 'Web',           desc: 'Order intake web frontend' },
-  Counter:       { repo: 'quarkusdroneshop/quarkusdroneshop-counter',       label: 'Counter',       desc: 'Event coordination and order routing' },
-  QDCA10:        { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10',        label: 'QDCA10',        desc: 'DroneA10 series inventory and dispatch service' },
-  QDCA10Pro:     { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10pro',     label: 'QDCA10Pro',     desc: 'DroneA10Pro series inventory and dispatch service' },
-  Inventory:     { repo: 'quarkusdroneshop/quarkusdroneshop-inventory',     label: 'Inventory',     desc: 'Drone inventory management and replenishment' },
-  Homeoffice:    { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice',    label: 'Homeoffice',    desc: 'Backend GraphQL API service' },
-  HomeofficUI:   { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice-ui', label: 'Homeoffice UI', desc: 'Home office management dashboard' },
+  Web:         { repo: 'quarkusdroneshop/quarkusdroneshop-web',           label: 'Web',           desc: 'Order intake web frontend' },
+  Counter:     { repo: 'quarkusdroneshop/quarkusdroneshop-counter',       label: 'Counter',       desc: 'Event coordination and order routing' },
+  QDCA10:      { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10',        label: 'QDCA10',        desc: 'DroneA10 series inventory and dispatch' },
+  QDCA10Pro:   { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10pro',     label: 'QDCA10Pro',     desc: 'DroneA10Pro series inventory and dispatch' },
+  Inventory:   { repo: 'quarkusdroneshop/quarkusdroneshop-inventory',     label: 'Inventory',     desc: 'Drone inventory management and replenishment' },
+  Homeoffice:  { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice',    label: 'Homeoffice',    desc: 'Backend GraphQL API service' },
+  HomeofficUI: { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice-ui', label: 'Homeoffice UI', desc: 'Home office management dashboard' },
 };
 
 function relativeTime(iso: string): string {
@@ -98,13 +110,20 @@ function relativeTime(iso: string): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+function weekLabel(unixSec: number): string {
+  const d = new Date(unixSec * 1000);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+const emptyWeeklyData: WeekData[] = Array.from({ length: 26 }, (_, i) => ({ week: 0, total: 0 }));
+
 const defaultMeta: ComponentMeta = {
   loading: true,
   pushedAt: '',
   stargazersCount: 0,
   forksCount: 0,
   openIssuesCount: 0,
-  weeklyCommits: new Array(26).fill(0),
+  weeklyData: emptyWeeklyData,
   health: 'unknown',
 };
 
@@ -120,7 +139,7 @@ export class SystemComponents extends React.Component<{}, State> {
       selectedDataListItemId: '',
       inventory: [],
       inventoryLoading: true,
-      github: Object.fromEntries(Object.keys(REPOS).map(k => [k, { ...defaultMeta, weeklyCommits: new Array(26).fill(0) }])),
+      github: Object.fromEntries(Object.keys(REPOS).map(k => [k, { ...defaultMeta }])),
       backendHealth: 'checking',
     };
     this.onCloseDrawerClick = this.onCloseDrawerClick.bind(this);
@@ -158,24 +177,31 @@ export class SystemComponents extends React.Component<{}, State> {
   }
 
   loadGitHub() {
-    Object.entries(REPOS).forEach(([key, { repo }]) => {
+    const keys = Object.keys(REPOS);
+    let completed = 0;
+
+    keys.forEach(key => {
+      const { repo } = REPOS[key];
       Promise.all([
         fetch(`https://api.github.com/repos/${repo}`).then(r => r.json()),
         fetch(`https://api.github.com/repos/${repo}/stats/commit_activity`).then(r => r.json()),
       ])
         .then(([repoData, activity]) => {
-          // activity = 52 weekly objects; take last 26 (≈ 6 months)
-          let weeklyCommits = new Array(26).fill(0);
+          let weeklyData: WeekData[] = emptyWeeklyData;
           if (Array.isArray(activity) && activity.length >= 26) {
-            weeklyCommits = activity.slice(-26).map((w: { total: number }) => w.total);
+            weeklyData = activity.slice(-26).map((w: { week: number; total: number }) => ({
+              week: w.week,
+              total: w.total,
+            }));
           }
           const daysSincePush = repoData.pushed_at
             ? Math.floor((Date.now() - new Date(repoData.pushed_at).getTime()) / 86400000)
             : 999;
-          const health: 'ok' | 'warn' | 'unknown' = daysSincePush < 30 ? 'ok' : daysSincePush < 180 ? 'warn' : 'unknown';
+          const health: 'ok' | 'warn' | 'unknown' =
+            daysSincePush < 30 ? 'ok' : daysSincePush < 180 ? 'warn' : 'unknown';
 
-          this.setState(prev => ({
-            github: {
+          this.setState(prev => {
+            const updated = {
               ...prev.github,
               [key]: {
                 loading: false,
@@ -183,21 +209,43 @@ export class SystemComponents extends React.Component<{}, State> {
                 stargazersCount: repoData.stargazers_count ?? 0,
                 forksCount: repoData.forks_count ?? 0,
                 openIssuesCount: repoData.open_issues_count ?? 0,
-                weeklyCommits,
+                weeklyData,
                 health,
               },
-            },
-          }));
+            };
+            completed++;
+            if (completed === keys.length) this.checkAndPublishAlerts(updated);
+            return { github: updated };
+          });
         })
         .catch(() => {
-          this.setState(prev => ({
-            github: {
+          this.setState(prev => {
+            const updated = {
               ...prev.github,
               [key]: { ...prev.github[key], loading: false },
-            },
-          }));
+            };
+            completed++;
+            if (completed === keys.length) this.checkAndPublishAlerts(updated);
+            return { github: updated };
+          });
         });
     });
+  }
+
+  checkAndPublishAlerts(github: Record<string, ComponentMeta>) {
+    const alerts: string[] = [];
+    Object.entries(github).forEach(([key, meta]) => {
+      if (!meta.loading && !meta.pushedAt) {
+        alerts.push(`${REPOS[key].label}: GitHub data not fetched`);
+      }
+      if (!meta.loading && meta.health === 'warn') {
+        alerts.push(`${REPOS[key].label}: No recent commits (>30 days)`);
+      }
+    });
+    if (this.state.backendHealth === 'error') {
+      alerts.push('Backend GraphQL: No response');
+    }
+    publishSystemAlerts(alerts);
   }
 
   inventoryPct(category: 'drone' | 'food'): number {
@@ -255,71 +303,179 @@ export class SystemComponents extends React.Component<{}, State> {
     return <Label color="grey" isCompact>Unknown</Label>;
   }
 
-  // Commit bar chart — last 26 weeks (≈ 6 months)
+  // Commit bar chart — last 26 weeks with date labels at month boundaries
   commitChart(key: string) {
     const g = this.state.github[key];
     if (g.loading) return <Spinner size="md" />;
 
-    const weeks = g.weeklyCommits;
-    // label every 4th week; others blank
-    const data = weeks.map((y, i) => ({
-      x: (i % 4 === 0) ? `W-${25 - i}` : '',
-      y,
-    }));
-    const maxY = Math.max(...weeks, 1);
+    const weeks = g.weeklyData;
+    const maxY = Math.max(...weeks.map(w => w.total), 1);
+
+    // Build tick labels: show date at month boundaries (or every 4 weeks if no timestamps)
+    const tickValues: number[] = [];
+    const tickFormat: Record<number, string> = {};
+    let lastMonth = -1;
+    weeks.forEach((w, i) => {
+      const month = w.week > 0
+        ? new Date(w.week * 1000).getMonth()
+        : -1;
+      if (month !== lastMonth) {
+        tickValues.push(i + 1);
+        tickFormat[i + 1] = w.week > 0 ? weekLabel(w.week) : `W-${25 - i}`;
+        lastMonth = month;
+      }
+    });
+
+    const data = weeks.map((w, i) => ({ x: i + 1, y: w.total }));
 
     return (
-      <div style={{ height: 110, width: 500 }}>
+      <div style={{ height: 120, width: 480 }}>
         <ChartGroup
           ariaDesc="6-month commit history"
           ariaTitle="Commits (last 26 weeks)"
-          domainPadding={{ x: 8 }}
-          height={90}
-          width={500}
-          padding={{ top: 8, bottom: 28, left: 36, right: 12 }}
-          domain={{ y: [0, maxY + 1] }}
-          containerComponent={<ChartVoronoiContainer constrainToVisibleArea labels={({ datum }) => `W-${25 - datum.index}: ${datum.y} commits`} />}
+          domainPadding={{ x: 6 }}
+          height={100}
+          width={480}
+          padding={{ top: 8, bottom: 32, left: 36, right: 8 }}
+          domain={{ x: [1, 26], y: [0, maxY + 1] }}
+          containerComponent={
+            <ChartVoronoiContainer
+              constrainToVisibleArea
+              labels={({ datum }) => {
+                const w = weeks[datum.x - 1];
+                const dateStr = w?.week > 0 ? weekLabel(w.week) : `W-${26 - datum.x}`;
+                return `${dateStr}: ${datum.y} commits`;
+              }}
+            />
+          }
         >
+          <ChartAxis
+            tickValues={tickValues}
+            tickFormat={v => tickFormat[v as number] ?? ''}
+            style={{ tickLabels: { fontSize: 9, angle: -30, textAnchor: 'end' } }}
+          />
+          <ChartAxis dependentAxis tickCount={4} style={{ tickLabels: { fontSize: 9 } }} />
           <ChartBar
             data={data}
-            style={{ data: { fill: '#0066cc', width: 12 } }}
+            style={{ data: { fill: '#0066cc', width: 10 } }}
           />
         </ChartGroup>
-        <Text component="small" style={{ display: 'block', textAlign: 'center' }}>
-          Commits — last 6 months (26 weeks)
-        </Text>
       </div>
     );
   }
 
-  inventoryDetail(items: InventoryLevel[]) {
-    if (items.length === 0) return <Text>No inventory data</Text>;
+  // Detail panel: GitHub stats + inventory
+  repoDetail(key: string, extraContent?: React.ReactNode) {
+    const g = this.state.github[key];
+    const { repo } = REPOS[key];
+    const totalCommits6m = g.weeklyData.reduce((s, w) => s + w.total, 0);
+    const avgPerWeek = (totalCommits6m / 26).toFixed(1);
+
     return (
-      <DataList aria-label="inventory detail">
-        {items.map(i => {
-          const pct = i.capacity > 0 ? Math.round((i.remaining / i.capacity) * 100) : 0;
-          return (
-            <DataListItem key={i.itemName}>
-              <DataListItemRow>
-                <DataListItemCells dataListCells={[
-                  <DataListCell key="name"><strong>{i.itemName}</strong></DataListCell>,
-                  <DataListCell key="val">
-                    {i.remaining} / {i.capacity}
-                    <Label color={pct < 20 ? 'red' : pct < 50 ? 'orange' : 'green'} style={{ marginLeft: 8 }}>
-                      {pct}%
-                    </Label>
-                  </DataListCell>,
-                ]} />
-              </DataListItemRow>
-            </DataListItem>
-          );
-        })}
-      </DataList>
+      <Stack hasGutter>
+        <StackItem>
+          <TextContent>
+            <Text component="h3">Repository Info</Text>
+          </TextContent>
+          {g.loading ? <Spinner size="sm" /> : (
+            <DescriptionList isCompact isHorizontal>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Repository</DescriptionListTerm>
+                <DescriptionListDescription>
+                  <a href={`https://github.com/${repo}`} target="_blank" rel="noreferrer">
+                    github.com/{repo}
+                  </a>
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Last Push</DescriptionListTerm>
+                <DescriptionListDescription>
+                  {g.pushedAt
+                    ? `${new Date(g.pushedAt).toLocaleDateString('en-US')} (${relativeTime(g.pushedAt)})`
+                    : <span style={{ color: '#c9190b' }}>Not fetched — GitHub API may be rate-limited</span>}
+                </DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm><StarIcon /> Stars</DescriptionListTerm>
+                <DescriptionListDescription>{g.stargazersCount}</DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm><CodeBranchIcon /> Forks</DescriptionListTerm>
+                <DescriptionListDescription>{g.forksCount}</DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Open Issues</DescriptionListTerm>
+                <DescriptionListDescription>{g.openIssuesCount}</DescriptionListDescription>
+              </DescriptionListGroup>
+              <DescriptionListGroup>
+                <DescriptionListTerm>Commits (6 months)</DescriptionListTerm>
+                <DescriptionListDescription>{totalCommits6m} total / {avgPerWeek} avg/week</DescriptionListDescription>
+              </DescriptionListGroup>
+            </DescriptionList>
+          )}
+        </StackItem>
+
+        {extraContent && (
+          <StackItem>
+            <Divider component="div" style={{ margin: '8px 0' }} />
+            {extraContent}
+          </StackItem>
+        )}
+
+        <StackItem>
+          <Divider component="div" style={{ margin: '8px 0' }} />
+          <TextContent>
+            <Text component="h3">Resource Metrics</Text>
+            <Text component="small" style={{ color: 'var(--pf-global--Color--200)' }}>
+              CPU / memory / pod status requires Prometheus or OpenShift metrics endpoint.
+              Configure the homeoffice backend to proxy cluster metrics to enable this view.
+            </Text>
+          </TextContent>
+        </StackItem>
+      </Stack>
     );
   }
 
-  componentRow(key: string, chartContent: React.ReactNode, drawerBody: React.ReactNode, overrideHealth?: 'ok' | 'error' | 'checking') {
-    const { repo, label, desc } = REPOS[key];
+  inventoryDetail(items: InventoryLevel[]) {
+    if (items.length === 0) return (
+      <TextContent>
+        <Text component="h3">Inventory</Text>
+        <Text>No inventory data</Text>
+      </TextContent>
+    );
+    return (
+      <Stack>
+        <StackItem>
+          <TextContent><Text component="h3">Inventory Levels</Text></TextContent>
+        </StackItem>
+        <StackItem>
+          <DataList aria-label="inventory detail" isCompact>
+            {items.map(i => {
+              const pct = i.capacity > 0 ? Math.round((i.remaining / i.capacity) * 100) : 0;
+              return (
+                <DataListItem key={i.itemName}>
+                  <DataListItemRow>
+                    <DataListItemCells dataListCells={[
+                      <DataListCell key="name"><strong>{i.itemName}</strong></DataListCell>,
+                      <DataListCell key="val">
+                        {i.remaining} / {i.capacity}
+                        <Label color={pct < 20 ? 'red' : pct < 50 ? 'orange' : 'green'} style={{ marginLeft: 8 }}>
+                          {pct}%
+                        </Label>
+                      </DataListCell>,
+                    ]} />
+                  </DataListItemRow>
+                </DataListItem>
+              );
+            })}
+          </DataList>
+        </StackItem>
+      </Stack>
+    );
+  }
+
+  componentRow(key: string, chartContent: React.ReactNode, detailContent: React.ReactNode, overrideHealth?: 'ok' | 'error' | 'checking') {
+    const { label } = REPOS[key];
     return (
       <DataListItem key={key} id={key}>
         <DataListItemRow>
@@ -333,22 +489,19 @@ export class SystemComponents extends React.Component<{}, State> {
                     </FlexItem>
                     <FlexItem>{this.healthLabel(key, overrideHealth)}</FlexItem>
                   </Flex>
-                  <small>
-                    <div>{desc}</div>
-                    <a href={`https://github.com/${repo}`} target="_blank" rel="noreferrer">
-                      github.com/{repo}
-                    </a>
+                  <small style={{ color: 'var(--pf-global--Color--200)' }}>
+                    {REPOS[key].desc}
                   </small>
                 </FlexItem>
                 {this.ghBadge(key)}
               </Flex>
             </DataListCell>,
-            <DataListCell key="chart" width={2}>{chartContent}</DataListCell>,
+            <DataListCell key="chart" width={3}>{chartContent}</DataListCell>,
             <DataListAction key="action" id={`${key}-action`} aria-label={`${key} actions`} aria-labelledby={key}>
               <Stack>
                 <StackItem>
                   <Button variant={ButtonVariant.secondary}
-                    onClick={() => this.openDrawer(key, `${label} Details`, drawerBody)}>
+                    onClick={() => this.openDrawer(key, `${label} Details`, detailContent)}>
                     Detail
                   </Button>
                 </StackItem>
@@ -371,8 +524,12 @@ export class SystemComponents extends React.Component<{}, State> {
       backendHealth,
     } = this.state;
 
-    const droneItems = inventory.filter(i => ['DRONE', 'drone', 'Drone'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase())));
-    const foodItems  = inventory.filter(i => ['FOOD', 'food', 'BURGER', 'FRIES', 'MUFFIN'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase())));
+    const droneItems = inventory.filter(i =>
+      ['DRONE', 'drone', 'Drone'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase()))
+    );
+    const foodItems = inventory.filter(i =>
+      ['FOOD', 'food', 'BURGER', 'FRIES', 'MUFFIN'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase()))
+    );
 
     const inventorySummary = (
       <Flex direction={{ default: 'column' }}>
@@ -390,7 +547,7 @@ export class SystemComponents extends React.Component<{}, State> {
     );
 
     const panelContent = (
-      <DrawerPanelContent minSize="400px">
+      <DrawerPanelContent minSize="420px">
         <DrawerHead>
           <Title headingLevel="h2" size="xl">{drawerTitle}</Title>
           <DrawerActions>
@@ -407,36 +564,47 @@ export class SystemComponents extends React.Component<{}, State> {
         selectedDataListItemId={selectedDataListItemId}
         onSelectDataListItem={id => this.setState({ selectedDataListItemId: id })}
       >
-        {this.componentRow('Web', this.commitChart('Web'),
-          <Text>See left panel for GitHub repository information.</Text>)}
+        {this.componentRow('Web',
+          this.commitChart('Web'),
+          this.repoDetail('Web'))}
 
-        {this.componentRow('Counter', this.commitChart('Counter'),
-          <Text>See left panel for GitHub repository information.</Text>)}
+        {this.componentRow('Counter',
+          this.commitChart('Counter'),
+          this.repoDetail('Counter'))}
 
-        {this.componentRow('QDCA10', this.commitChart('QDCA10'),
-          this.inventoryDetail(droneItems))}
+        {this.componentRow('QDCA10',
+          this.commitChart('QDCA10'),
+          this.repoDetail('QDCA10', this.inventoryDetail(droneItems)))}
 
-        {this.componentRow('QDCA10Pro', this.commitChart('QDCA10Pro'),
-          this.inventoryDetail(foodItems))}
+        {this.componentRow('QDCA10Pro',
+          this.commitChart('QDCA10Pro'),
+          this.repoDetail('QDCA10Pro', this.inventoryDetail(foodItems)))}
 
         {this.componentRow('Inventory',
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
             {inventoryLoading ? <Spinner size="md" /> : inventorySummary}
             {this.commitChart('Inventory')}
           </div>,
-          this.inventoryDetail(inventory))}
+          this.repoDetail('Inventory', this.inventoryDetail(inventory)))}
 
-        {this.componentRow('Homeoffice', this.commitChart('Homeoffice'),
-          <TextContent>
-            <Text><strong>GraphQL endpoint</strong> health check in progress.</Text>
-            <Text>Status: {backendHealth === 'ok' ? '✅ Responding' : backendHealth === 'error' ? '❌ No response' : '⏳ Checking'}</Text>
-          </TextContent>,
+        {this.componentRow('Homeoffice',
+          this.commitChart('Homeoffice'),
+          this.repoDetail('Homeoffice',
+            <TextContent>
+              <Text component="h3">GraphQL Backend</Text>
+              <Text>Status: {backendHealth === 'ok' ? '✅ Responding' : backendHealth === 'error' ? '❌ No response' : '⏳ Checking'}</Text>
+            </TextContent>
+          ),
           backendHealth)}
 
-        {this.componentRow('HomeofficUI', this.commitChart('HomeofficUI'),
-          <TextContent>
-            <Text>This application itself. If the dashboard is visible, the service is running.</Text>
-          </TextContent>,
+        {this.componentRow('HomeofficUI',
+          this.commitChart('HomeofficUI'),
+          this.repoDetail('HomeofficUI',
+            <TextContent>
+              <Text component="h3">This Application</Text>
+              <Text>The dashboard is visible — service is running.</Text>
+            </TextContent>
+          ),
           'ok')}
       </DataList>
     );
@@ -446,7 +614,7 @@ export class SystemComponents extends React.Component<{}, State> {
         <PageSection variant={PageSectionVariants.light}>
           <TextContent>
             <Text component="h1">System Components</Text>
-            <Text component="p">Status, inventory levels, and 6-month commit activity for each microservice</Text>
+            <Text component="p">Status, inventory levels, and 6-month commit activity per microservice</Text>
           </TextContent>
         </PageSection>
         <Divider component="div" />

@@ -20,6 +20,7 @@ import BellIcon from '@patternfly/react-icons/dist/js/icons/bell-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import { gql } from '@apollo/client';
 import client from 'src/apolloclient';
+import { subscribeSystemAlerts } from '@app/utils/systemHealthStore';
 import '@app/app.css';
 
 const GET_FAILED_ORDERS = gql`
@@ -66,26 +67,24 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     setIsMobileView(props.mobileView);
   };
 
-  // 通知ポーリング（30秒ごと）
+  // Backend polling (every 30s): DLQ + inventory health
   React.useEffect(() => {
     const poll = () => {
       const msgs: string[] = [];
       let dlq = 0;
       let sysAlert = false;
 
-      // DLQ チェック
       client
         .query({ query: GET_FAILED_ORDERS, fetchPolicy: 'no-cache' })
         .then(res => {
           dlq = (res?.data?.failedOrders ?? []).length;
-          if (dlq > 0) msgs.push(`DLQ: ${dlq} 件の失敗注文があります`);
+          if (dlq > 0) msgs.push(`DLQ: ${dlq} failed order(s)`);
         })
         .catch(() => {
           sysAlert = true;
-          msgs.push('バックエンドに接続できません');
+          msgs.push('Backend unreachable');
         })
         .finally(() => {
-          // Inventory チェック
           client
             .query({ query: GET_INVENTORY, fetchPolicy: 'no-cache' })
             .then(res => {
@@ -93,12 +92,16 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
               const critical = levels.filter((i: any) => i.capacity > 0 && (i.remaining / i.capacity) < 0.1);
               if (critical.length > 0) {
                 sysAlert = true;
-                msgs.push(`在庫不足: ${critical.map((i: any) => i.itemName).join(', ')}`);
+                msgs.push(`Low inventory: ${critical.map((i: any) => i.itemName).join(', ')}`);
               }
             })
             .catch(() => {})
             .finally(() => {
-              setNotifications({ dlqCount: dlq, systemAlert: sysAlert, alertMessages: msgs });
+              setNotifications(prev => ({
+                dlqCount: dlq,
+                systemAlert: sysAlert,
+                alertMessages: [...msgs, ...prev.alertMessages.filter(m => m.includes('Not fetched') || m.includes('commits'))],
+              }));
             });
         });
     };
@@ -106,6 +109,23 @@ const AppLayout: React.FunctionComponent<IAppLayout> = ({ children }) => {
     poll();
     const id = window.setInterval(poll, 30000);
     return () => clearInterval(id);
+  }, []);
+
+  // Subscribe to SystemComponents GitHub fetch alerts
+  React.useEffect(() => {
+    const unsubscribe = subscribeSystemAlerts(sysAlerts => {
+      if (sysAlerts.length > 0) {
+        setNotifications(prev => ({
+          ...prev,
+          systemAlert: true,
+          alertMessages: [
+            ...prev.alertMessages.filter(m => !m.includes('Not fetched') && !m.includes('commits') && !m.includes('No recent')),
+            ...sysAlerts,
+          ],
+        }));
+      }
+    });
+    return unsubscribe;
   }, []);
 
   const hasAlert = notifications.dlqCount > 0 || notifications.systemAlert;

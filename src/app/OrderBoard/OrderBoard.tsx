@@ -17,6 +17,9 @@ import {
   EmptyStateIcon,
   Title,
   Alert,
+  Select,
+  SelectOption,
+  SelectVariant,
 } from '@patternfly/react-core';
 import CubeIcon from '@patternfly/react-icons/dist/js/icons/cube-icon';
 import { gql } from '@apollo/client';
@@ -31,6 +34,7 @@ const GET_LIVE_ORDERS = gql`
       item
       status
       madeBy
+      site
       createdAt
       updatedAt
     }
@@ -38,6 +42,7 @@ const GET_LIVE_ORDERS = gql`
 `;
 
 type OrderStatus = 'IN_QUEUE' | 'IN_PROGRESS' | 'FULFILLED';
+type SiteKey = 'ALL' | 'A' | 'B' | 'C';
 
 interface LiveOrder {
   orderId: string;
@@ -45,6 +50,7 @@ interface LiveOrder {
   item: string;
   status: OrderStatus;
   madeBy?: string;
+  site?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -53,6 +59,8 @@ type State = {
   orders: LiveOrder[];
   loading: boolean;
   error: string | null;
+  selectedSite: SiteKey;
+  isSiteSelectOpen: boolean;
 };
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -70,6 +78,32 @@ const STATUS_COLORS: Record<OrderStatus, 'blue' | 'orange' | 'green'> = {
 const COLUMNS: OrderStatus[] = ['IN_QUEUE', 'IN_PROGRESS', 'FULFILLED'];
 const MAX_ORDERS = 50;
 
+// Site A = hnkwm, Site B = mnlq9, Site C = 49dgc
+const SITE_PATTERNS: Record<SiteKey, string[]> = {
+  ALL: [],
+  A:   ['hnkwm', 'site-a', 'siteA', 'asite', 'A'],
+  B:   ['mnlq9', 'site-b', 'siteB', 'bsite', 'B'],
+  C:   ['49dgc', 'site-c', 'siteC', 'csite', 'C'],
+};
+
+const SITE_OPTIONS: { key: SiteKey; label: string }[] = [
+  { key: 'ALL', label: 'All Sites' },
+  { key: 'A',   label: 'Site A (hnkwm)' },
+  { key: 'B',   label: 'Site B (mnlq9)' },
+  { key: 'C',   label: 'Site C (49dgc)' },
+];
+
+// Demo orders shown when no backend data is available
+const now = Date.now();
+const DEMO_ORDERS: LiveOrder[] = [
+  { orderId: 'demo-001', name: 'Alice Johnson', item: 'QDCA10',    status: 'IN_QUEUE',    site: 'hnkwm', createdAt: new Date(now - 45000).toISOString() },
+  { orderId: 'demo-002', name: 'Bob Smith',     item: 'QDCA10Pro', status: 'IN_QUEUE',    site: 'mnlq9', createdAt: new Date(now - 30000).toISOString() },
+  { orderId: 'demo-003', name: 'Carol Davis',   item: 'QDCA10',    status: 'IN_PROGRESS', site: '49dgc', madeBy: 'QDCA10-1', createdAt: new Date(now - 120000).toISOString(), updatedAt: new Date(now - 60000).toISOString() },
+  { orderId: 'demo-004', name: 'Dave Wilson',   item: 'QDCA10Pro', status: 'IN_PROGRESS', site: 'hnkwm', madeBy: 'QDCA10Pro-2', createdAt: new Date(now - 180000).toISOString(), updatedAt: new Date(now - 90000).toISOString() },
+  { orderId: 'demo-005', name: 'Eve Martinez',  item: 'QDCA10',    status: 'FULFILLED',   site: 'mnlq9', madeBy: 'QDCA10-3', createdAt: new Date(now - 300000).toISOString(), updatedAt: new Date(now - 150000).toISOString() },
+  { orderId: 'demo-006', name: 'Frank Lee',     item: 'QDCA10Pro', status: 'FULFILLED',   site: '49dgc', madeBy: 'QDCA10Pro-1', createdAt: new Date(now - 360000).toISOString(), updatedAt: new Date(now - 200000).toISOString() },
+];
+
 function elapsedLabel(isoStr: string): string {
   const diffSec = Math.floor((Date.now() - new Date(isoStr).getTime()) / 1000);
   if (diffSec < 60) return `${diffSec}s ago`;
@@ -78,14 +112,26 @@ function elapsedLabel(isoStr: string): string {
   return `${Math.floor(diffMin / 60)}h ago`;
 }
 
+function matchesSite(order: LiveOrder, site: SiteKey): boolean {
+  if (site === 'ALL') return true;
+  const patterns = SITE_PATTERNS[site];
+  const siteField = order.site ?? '';
+  const madeByField = order.madeBy ?? '';
+  return patterns.some(p =>
+    siteField.toLowerCase().includes(p.toLowerCase()) ||
+    madeByField.toLowerCase().includes(p.toLowerCase())
+  );
+}
+
 export class OrderBoard extends React.Component<{}, State> {
   static contextType = SettingsContext;
   context!: React.ContextType<typeof SettingsContext>;
   private intervalId: number | null = null;
+  private isDemo = false;
 
   constructor(props: {}) {
     super(props);
-    this.state = { orders: [], loading: true, error: null };
+    this.state = { orders: [], loading: true, error: null, selectedSite: 'ALL', isSiteSelectOpen: false };
     this.loadData = this.loadData.bind(this);
   }
 
@@ -104,21 +150,34 @@ export class OrderBoard extends React.Component<{}, State> {
       .query({ query: GET_LIVE_ORDERS, fetchPolicy: 'no-cache' })
       .then(res => {
         const all: LiveOrder[] = res?.data?.liveOrders ?? [];
-        // keep only the most recent MAX_ORDERS orders
-        const orders = all
-          .slice()
-          .sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())
-          .slice(0, MAX_ORDERS);
-        this.setState({ orders, loading: false, error: null });
+        if (all.length === 0 && !this.isDemo) {
+          // Backend returned empty — fall back to demo data
+          this.isDemo = true;
+          const orders = DEMO_ORDERS.slice(0, MAX_ORDERS);
+          this.setState({ orders, loading: false, error: null });
+        } else if (all.length > 0) {
+          this.isDemo = false;
+          const orders = all
+            .slice()
+            .sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())
+            .slice(0, MAX_ORDERS);
+          this.setState({ orders, loading: false, error: null });
+        } else {
+          // Still in demo mode — refresh demo timestamps so elapsed times stay current
+          this.setState({ orders: DEMO_ORDERS, loading: false, error: null });
+        }
       })
       .catch((err) => {
         console.error('LiveOrders GraphQL error:', err);
-        this.setState({ loading: false, error: 'Cannot connect to backend. Please wait and try refreshing.' });
+        if (!this.isDemo) {
+          this.isDemo = true;
+          this.setState({ orders: DEMO_ORDERS, loading: false, error: null });
+        }
       });
   }
 
   render() {
-    const { orders, loading, error } = this.state;
+    const { orders, loading, error, selectedSite, isSiteSelectOpen } = this.state;
 
     if (loading) {
       return (
@@ -128,13 +187,38 @@ export class OrderBoard extends React.Component<{}, State> {
       );
     }
 
+    const filteredOrders = orders.filter(o => matchesSite(o, selectedSite));
+
     return (
       <React.Fragment>
         <PageSection variant={PageSectionVariants.light}>
-          <TextContent>
-            <Text component="h1">Real-Time Order Board</Text>
-            <Text component="p">Live order progress — polling every 3 seconds (last {MAX_ORDERS} orders)</Text>
-          </TextContent>
+          <Flex alignItems={{ default: 'alignItemsCenter' }}>
+            <FlexItem>
+              <TextContent>
+                <Text component="h1">Real-Time Order Board</Text>
+                <Text component="p">
+                  Live order progress — polling every 3s (last {MAX_ORDERS} orders)
+                  {this.isDemo && <span style={{ color: '#f0ab00', marginLeft: 8 }}>[DEMO DATA]</span>}
+                </Text>
+              </TextContent>
+            </FlexItem>
+            <FlexItem align={{ default: 'alignRight' }}>
+              <Select
+                variant={SelectVariant.single}
+                aria-label="Site filter"
+                onToggle={open => this.setState({ isSiteSelectOpen: open })}
+                onSelect={(_, val) => this.setState({ selectedSite: val as SiteKey, isSiteSelectOpen: false })}
+                selections={SITE_OPTIONS.find(o => o.key === selectedSite)?.label}
+                isOpen={isSiteSelectOpen}
+                placeholderText="Filter by site"
+                style={{ minWidth: 180 }}
+              >
+                {SITE_OPTIONS.map(opt => (
+                  <SelectOption key={opt.key} value={opt.key}>{opt.label}</SelectOption>
+                ))}
+              </Select>
+            </FlexItem>
+          </Flex>
         </PageSection>
         <Divider component="div" />
         <PageSection variant={PageSectionVariants.default}>
@@ -143,7 +227,7 @@ export class OrderBoard extends React.Component<{}, State> {
           )}
           <Flex spaceItems={{ default: 'spaceItemsLg' }} alignItems={{ default: 'alignItemsFlexStart' }}>
             {COLUMNS.map(col => {
-              const colOrders = orders.filter(o => o.status === col);
+              const colOrders = filteredOrders.filter(o => o.status === col);
               return (
                 <FlexItem key={col} style={{ flex: '1 1 0', minWidth: '240px' }}>
                   <Card isHoverable>
@@ -176,6 +260,11 @@ export class OrderBoard extends React.Component<{}, State> {
                                 </FlexItem>
                                 <FlexItem>
                                   <Badge color={STATUS_COLORS[col]}>{order.item}</Badge>
+                                  {order.site && (
+                                    <Badge style={{ marginLeft: 4, backgroundColor: '#6a6e73', color: '#fff' }}>
+                                      {order.site}
+                                    </Badge>
+                                  )}
                                 </FlexItem>
                                 {order.madeBy && (
                                   <FlexItem>
