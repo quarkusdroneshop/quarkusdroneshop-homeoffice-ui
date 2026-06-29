@@ -65,14 +65,14 @@ export class Dashboard extends React.Component {
             </LevelItem>
 
             <LevelItem>
+              <MockerSwitch />
+            </LevelItem>
+
+            <LevelItem>
               <LabelGroup categoryName="Display">
                 {sectionLabel('orderUp', 'OrderUp')}
                 {sectionLabel('sales', 'Sales')}
               </LabelGroup>
-            </LevelItem>
-
-            <LevelItem>
-              <MockerSwitch />
             </LevelItem>
           </Level>
         </PageSection>

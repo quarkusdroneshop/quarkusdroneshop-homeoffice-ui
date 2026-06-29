@@ -6,13 +6,14 @@ import {
     CardTitle,
    } from '@patternfly/react-core';
 
-import { 
-    Chart, 
-    ChartAxis, 
-    ChartBar, 
+import {
+    Chart,
+    ChartAxis,
+    ChartBar,
     ChartStack,
-    ChartVoronoiContainer, 
+    ChartVoronoiContainer,
     ChartThemeColor,
+    ChartLegend,
     } from '@patternfly/react-charts';
 
 import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon';
@@ -135,6 +136,7 @@ export class StoreSalesChart extends React.Component {
               legendData={productLegend}
               legendOrientation="vertical"
               legendPosition="right"
+              legendComponent={<ChartLegend style={{ labels: { fontSize: 12, fontFamily: "'Red Hat Text', RedHatText, Arial, sans-serif" } }} />}
               height={250}
               padding={{ bottom: 50, left: 75, right: 200, top: 0 }}
               width={500}

@@ -98,24 +98,19 @@ h1, h2, h3, h4, h5, h6,
   border: 2px solid #151515;
 }
 
-/* サイドバー最下部のRedHatロゴ */
-.rh-sidebar-logo {
-  position: absolute;
-  bottom: 24px;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 8px 16px;
-  opacity: 0.7;
+
+/* チャート・SVGテキストのフォント統一 */
+text, tspan,
+svg text,
+svg tspan {
+  font-family: 'Red Hat Text', RedHatText, RedHatTextWeb, 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
 }
-.rh-sidebar-logo:hover {
-  opacity: 1;
-}
-.rh-sidebar-logo svg {
-  height: 28px;
-  fill: #ffffff;
+
+/* PatternFly Label / LabelGroup のフォント */
+.pf-c-label,
+.pf-c-label__text,
+.pf-c-label-group__label {
+  font-family: 'Red Hat Text', RedHatText, RedHatTextWeb, 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
 }
 
 /* DLQ アラートアイコンのパルスアニメーション */
