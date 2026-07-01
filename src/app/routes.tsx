@@ -77,19 +77,24 @@ const routes: AppRouteConfig[] = [
     title: 'Quarkus Droneshop | System Components',
   },
   {
-    component: OrderBoard,
-    exact: true,
-    label: 'Order Board',
-    path: '/orderboard',
-    title: 'Quarkus Droneshop | Order Board',
-  },
-  {
-    component: Support,
-    exact: true,
-    isAsync: true,
-    label: 'Support',
-    path: '/support',
-    title: 'Quarkus Droneshop | Support Page',
+    label: 'Order',
+    routes: [
+      {
+        component: OrderBoard,
+        exact: true,
+        label: 'Order Board',
+        path: '/orderboard',
+        title: 'Quarkus Droneshop | Order Board',
+      },
+      {
+        component: Support,
+        exact: true,
+        isAsync: true,
+        label: 'Support',
+        path: '/support',
+        title: 'Quarkus Droneshop | Support Page',
+      },
+    ],
   },
   {
     label: 'Settings',
