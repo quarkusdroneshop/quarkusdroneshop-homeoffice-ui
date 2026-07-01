@@ -28,7 +28,13 @@ import {
 } from '@patternfly/react-core';
 import { SettingsContext, ClusterName } from '../../utils/SettingsContext';
 
-const CLUSTER_OPTIONS: ClusterName[] = ['a-cluster', 'b-cluster'];
+const CLUSTER_OPTIONS: ClusterName[] = ['a-cluster', 'b-cluster', 'c-cluster'];
+
+const CLUSTER_COLORS: Record<ClusterName, 'purple' | 'cyan' | 'orange'> = {
+  'a-cluster': 'purple',
+  'b-cluster': 'cyan',
+  'c-cluster': 'orange',
+};
 
 const SERVICE_LABELS: Record<string, string> = {
   Web:         'Web',
@@ -40,14 +46,18 @@ const SERVICE_LABELS: Record<string, string> = {
   HomeofficUI: 'Homeoffice UI',
 };
 
-const CLUSTER_COLORS: Record<ClusterName, 'purple' | 'cyan'> = {
-  'a-cluster': 'purple',
-  'b-cluster': 'cyan',
+const ROUTE_PREFIXES: Record<string, string> = {
+  Web:         'web-quarkusdroneshop-demo',
+  Counter:     'counter-quarkusdroneshop-demo',
+  QDCA10:      'qdca10-quarkusdroneshop-demo',
+  QDCA10Pro:   'qdca10pro-quarkusdroneshop-demo',
+  Inventory:   'inventory-quarkusdroneshop-demo',
+  Homeoffice:  'homeoffice-backend-quarkusdroneshop-demo',
+  HomeofficUI: 'homeoffice-ui-quarkusdroneshop-demo',
 };
 
 interface State {
-  aDomain: string;
-  bDomain: string;
+  domains: Record<ClusterName, string>;
   serviceCluster: Record<string, ClusterName>;
   openSelect: string | null;
   saved: boolean;
@@ -60,36 +70,43 @@ class ClusterSettingsPage extends React.Component<{}, State> {
   constructor(props: {}) {
     super(props);
     this.state = {
-      aDomain: '',
-      bDomain: '',
+      domains: { 'a-cluster': '', 'b-cluster': '', 'c-cluster': '' },
       serviceCluster: {},
       openSelect: null,
       saved: false,
     };
     this.handleSave = this.handleSave.bind(this);
+    this.handleRevert = this.handleRevert.bind(this);
   }
 
   componentDidMount() {
     const { settings } = this.context;
     this.setState({
-      aDomain: settings.clusterDomains['a-cluster'],
-      bDomain: settings.clusterDomains['b-cluster'],
+      domains: { ...settings.clusterDomains },
       serviceCluster: { ...settings.serviceCluster },
     });
   }
 
   handleSave() {
     const { updateSettings } = this.context;
-    const { aDomain, bDomain, serviceCluster } = this.state;
-    updateSettings({
-      clusterDomains: {
-        'a-cluster': aDomain.trim(),
-        'b-cluster': bDomain.trim(),
-      },
-      serviceCluster,
-    });
+    const { domains, serviceCluster } = this.state;
+    updateSettings({ clusterDomains: domains, serviceCluster });
     this.setState({ saved: true });
     setTimeout(() => this.setState({ saved: false }), 3000);
+  }
+
+  handleRevert() {
+    const { settings } = this.context;
+    this.setState({
+      domains: { ...settings.clusterDomains },
+      serviceCluster: { ...settings.serviceCluster },
+    });
+  }
+
+  setDomain(cluster: ClusterName, value: string) {
+    this.setState(prev => ({
+      domains: { ...prev.domains, [cluster]: value },
+    }));
   }
 
   setServiceCluster(key: string, cluster: ClusterName) {
@@ -99,17 +116,25 @@ class ClusterSettingsPage extends React.Component<{}, State> {
     }));
   }
 
+  buildHealthUrl(key: string): string {
+    const { domains, serviceCluster } = this.state;
+    const cluster = serviceCluster[key];
+    const domain = cluster ? domains[cluster] : '';
+    if (!domain) return '—';
+    return `http://${ROUTE_PREFIXES[key]}.${domain}/q/health`;
+  }
+
   render() {
-    const { aDomain, bDomain, serviceCluster, openSelect, saved } = this.state;
+    const { domains, serviceCluster, openSelect, saved } = this.state;
 
     return (
       <React.Fragment>
         <PageSection variant={PageSectionVariants.light}>
           <TextContent>
-            <Text component="h1">クラスタ設定</Text>
+            <Text component="h1">Cluster Settings</Text>
             <Text component="p">
-              クラスタのドメインと、各サービスの所属クラスタを設定します。
-              Health Check URL は <code>http://&#123;route&#125;.&#123;domain&#125;/q/health</code> の形式で構築されます。
+              Configure the domain for each cluster and assign each service to a cluster.
+              Health check URLs are built as <code>http://&#123;route&#125;.&#123;domain&#125;/q/health</code>.
             </Text>
           </TextContent>
         </PageSection>
@@ -118,48 +143,46 @@ class ClusterSettingsPage extends React.Component<{}, State> {
 
         <PageSection variant={PageSectionVariants.default}>
           {saved && (
-            <Alert variant="success" title="設定を保存しました" style={{ marginBottom: '16px' }} />
+            <Alert variant="success" title="Settings saved" style={{ marginBottom: '16px' }} />
           )}
 
-          {/* クラスタドメイン設定 */}
+          {/* Cluster Domains */}
           <Card style={{ marginBottom: '24px' }}>
-            <CardTitle>クラスタドメイン</CardTitle>
+            <CardTitle>Cluster Domains</CardTitle>
             <CardBody>
               <Form>
-                <FormGroup
-                  label={<><Label color="purple" isCompact style={{ marginRight: 8 }}>a-cluster</Label>ドメイン</>}
-                  fieldId="a-cluster-domain"
-                  helperText="例: apps.ocp.49dgc.sandbox1447.opentlc.com"
-                >
-                  <TextInput
-                    id="a-cluster-domain"
-                    type="text"
-                    value={aDomain}
-                    onChange={(_e, val) => this.setState({ aDomain: val })}
-                    placeholder="apps.ocp.xxxxx.sandboxYYYY.opentlc.com"
-                  />
-                </FormGroup>
-
-                <FormGroup
-                  label={<><Label color="cyan" isCompact style={{ marginRight: 8 }}>b-cluster</Label>ドメイン</>}
-                  fieldId="b-cluster-domain"
-                  helperText="例: apps.ocp.hnkwm.sandbox225.opentlc.com"
-                >
-                  <TextInput
-                    id="b-cluster-domain"
-                    type="text"
-                    value={bDomain}
-                    onChange={(_e, val) => this.setState({ bDomain: val })}
-                    placeholder="apps.ocp.xxxxx.sandboxYYYY.opentlc.com"
-                  />
-                </FormGroup>
+                {CLUSTER_OPTIONS.map(cluster => (
+                  <FormGroup
+                    key={cluster}
+                    label={
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
+                        <FlexItem>
+                          <Label color={CLUSTER_COLORS[cluster]} isCompact style={{ fontFamily: 'monospace' }}>
+                            {cluster}
+                          </Label>
+                        </FlexItem>
+                        <FlexItem>Domain</FlexItem>
+                      </Flex>
+                    }
+                    fieldId={`${cluster}-domain`}
+                    helperText={`e.g. apps.ocp.xxxxx.sandboxYYYY.opentlc.com`}
+                  >
+                    <TextInput
+                      id={`${cluster}-domain`}
+                      type="text"
+                      value={domains[cluster]}
+                      onChange={(_e, val) => this.setDomain(cluster, val)}
+                      placeholder="apps.ocp.xxxxx.sandboxYYYY.opentlc.com"
+                    />
+                  </FormGroup>
+                ))}
               </Form>
             </CardBody>
           </Card>
 
-          {/* サービス所属クラスタ設定 */}
+          {/* Service Cluster Assignment */}
           <Card style={{ marginBottom: '24px' }}>
-            <CardTitle>サービス所属クラスタ</CardTitle>
+            <CardTitle>Service Cluster Assignment</CardTitle>
             <CardBody>
               <DataList aria-label="service cluster assignment" isCompact>
                 {Object.keys(SERVICE_LABELS).map(key => {
@@ -171,9 +194,7 @@ class ClusterSettingsPage extends React.Component<{}, State> {
                         <DataListItemCells dataListCells={[
                           <DataListCell key="name" width={2}>
                             <Flex alignItems={{ default: 'alignItemsCenter' }} spaceItems={{ default: 'spaceItemsSm' }}>
-                              <FlexItem>
-                                <strong>{SERVICE_LABELS[key]}</strong>
-                              </FlexItem>
+                              <FlexItem><strong>{SERVICE_LABELS[key]}</strong></FlexItem>
                               <FlexItem>
                                 <Label color={CLUSTER_COLORS[current]} isCompact style={{ fontFamily: 'monospace', fontSize: '0.75em' }}>
                                   {current}
@@ -181,11 +202,9 @@ class ClusterSettingsPage extends React.Component<{}, State> {
                               </FlexItem>
                             </Flex>
                           </DataListCell>,
-                          <DataListCell key="url" width={3}>
+                          <DataListCell key="url" width={4}>
                             <small style={{ color: 'var(--pf-global--Color--200)', fontFamily: 'monospace' }}>
-                              {current && serviceCluster[key]
-                                ? `http://${key.toLowerCase()}-quarkusdroneshop-demo.${current === 'a-cluster' ? aDomain : bDomain}/q/health`
-                                : '—'}
+                              {this.buildHealthUrl(key)}
                             </small>
                           </DataListCell>,
                           <DataListCell key="select" width={1}>
@@ -216,20 +235,8 @@ class ClusterSettingsPage extends React.Component<{}, State> {
           </Card>
 
           <ActionGroup>
-            <Button variant="primary" onClick={this.handleSave}>保存</Button>
-            <Button
-              variant="link"
-              onClick={() => {
-                const { settings } = this.context;
-                this.setState({
-                  aDomain: settings.clusterDomains['a-cluster'],
-                  bDomain: settings.clusterDomains['b-cluster'],
-                  serviceCluster: { ...settings.serviceCluster },
-                });
-              }}
-            >
-              変更を元に戻す
-            </Button>
+            <Button variant="primary" onClick={this.handleSave}>Save</Button>
+            <Button variant="link" onClick={this.handleRevert}>Revert Changes</Button>
           </ActionGroup>
         </PageSection>
       </React.Fragment>

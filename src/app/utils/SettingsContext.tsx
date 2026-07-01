@@ -6,11 +6,12 @@ export interface VisibleSections {
   inventory: boolean;
 }
 
-export type ClusterName = 'a-cluster' | 'b-cluster';
+export type ClusterName = 'a-cluster' | 'b-cluster' | 'c-cluster';
 
 export interface ClusterDomains {
   'a-cluster': string;
   'b-cluster': string;
+  'c-cluster': string;
 }
 
 /** key = REPOS key (Web, Counter, ...), value = cluster name */
@@ -35,6 +36,7 @@ const defaultSettings: AppSettings = {
   clusterDomains: {
     'a-cluster': 'apps.ocp.49dgc.sandbox1447.opentlc.com',
     'b-cluster': 'apps.ocp.hnkwm.sandbox225.opentlc.com',
+    'c-cluster': '',
   },
   serviceCluster: {
     Web:         'b-cluster',
