@@ -12,6 +12,26 @@ const backendUrl = process.env.GRAPHQL_BACKEND_URL || 'http://localhost:9090';
 
 console.log(`GraphQL backend: ${backendUrl}`);
 
+// Local health endpoint for homeoffice-ui (Node.js).
+// Must be registered BEFORE the proxy so Express resolves it first.
+// Returns the same JSON structure as Quarkus /q/health so that the
+// homeoffice-backend serviceHealthChecks() query can detect "status":"UP".
+app.get('/q/health', (_req, res) => {
+  res.status(200).json({
+    status: 'UP',
+    checks: [
+      {
+        name: 'node-server',
+        status: 'UP',
+        data: {
+          uptime: Math.floor(process.uptime()),
+          nodeVersion: process.version,
+        },
+      },
+    ],
+  });
+});
+
 // /graphql と /q/ (health/metrics) をバックエンドに転送
 // pathFilter を使うことで Express のパスプレフィックス除去を回避し、フルパスを保持して転送する
 app.use(
