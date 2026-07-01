@@ -6,11 +6,23 @@ export interface VisibleSections {
   inventory: boolean;
 }
 
+export type ClusterName = 'a-cluster' | 'b-cluster';
+
+export interface ClusterDomains {
+  'a-cluster': string;
+  'b-cluster': string;
+}
+
+/** key = REPOS key (Web, Counter, ...), value = cluster name */
+export type ServiceClusterMap = Record<string, ClusterName>;
+
 export interface AppSettings {
   pollingIntervalMs: number;
   inventoryAlertThreshold: number; // percentage (0-100)
   activeSite: string;
   visibleSections: VisibleSections;
+  clusterDomains: ClusterDomains;
+  serviceCluster: ServiceClusterMap;
 }
 
 const STORAGE_KEY = 'qdh_settings';
@@ -20,6 +32,19 @@ const defaultSettings: AppSettings = {
   inventoryAlertThreshold: 20,
   activeSite: 'all',
   visibleSections: { orderUp: true, sales: true, inventory: true },
+  clusterDomains: {
+    'a-cluster': 'apps.ocp.49dgc.sandbox1447.opentlc.com',
+    'b-cluster': 'apps.ocp.hnkwm.sandbox225.opentlc.com',
+  },
+  serviceCluster: {
+    Web:         'b-cluster',
+    Counter:     'b-cluster',
+    QDCA10:      'b-cluster',
+    QDCA10Pro:   'b-cluster',
+    Inventory:   'b-cluster',
+    Homeoffice:  'a-cluster',
+    HomeofficUI: 'a-cluster',
+  },
 };
 
 function loadSettings(): AppSettings {

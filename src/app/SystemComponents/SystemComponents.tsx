@@ -49,6 +49,7 @@ import StarIcon from '@patternfly/react-icons/dist/js/icons/star-icon';
 import { gql } from '@apollo/client';
 import client from 'src/apolloclient';
 import { publishSystemAlerts } from '@app/utils/systemHealthStore';
+import { SettingsContext, ClusterName } from '@app/utils/SettingsContext';
 
 const GET_INVENTORY = gql`
   query InventoryLevels {
@@ -61,8 +62,8 @@ const GET_INVENTORY = gql`
 `;
 
 const GET_SERVICE_HEALTH = gql`
-  query ServiceHealthChecks {
-    serviceHealthChecks {
+  query ServiceHealthChecks($inputs: [ServiceHealthInput]!) {
+    serviceHealthChecks(inputs: $inputs) {
       name
       status
       detail
@@ -106,16 +107,14 @@ interface State {
   serviceHealth: Record<string, ServiceStatus>;
 }
 
-type ClusterName = 'a-cluster' | 'b-cluster';
-
-const REPOS: Record<string, { repo: string; label: string; desc: string; cluster: ClusterName }> = {
-  Web:         { repo: 'quarkusdroneshop/quarkusdroneshop-web',           label: 'Web',           desc: 'Order intake web frontend',                  cluster: 'b-cluster' },
-  Counter:     { repo: 'quarkusdroneshop/quarkusdroneshop-counter',       label: 'Counter',       desc: 'Event coordination and order routing',        cluster: 'b-cluster' },
-  QDCA10:      { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10',        label: 'QDCA10',        desc: 'DroneA10 series inventory and dispatch',      cluster: 'b-cluster' },
-  QDCA10Pro:   { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10pro',     label: 'QDCA10Pro',     desc: 'DroneA10Pro series inventory and dispatch',   cluster: 'b-cluster' },
-  Inventory:   { repo: 'quarkusdroneshop/quarkusdroneshop-inventory',     label: 'Inventory',     desc: 'Drone inventory management and replenishment', cluster: 'b-cluster' },
-  Homeoffice:  { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice',    label: 'Homeoffice',    desc: 'Backend GraphQL API service',                 cluster: 'a-cluster' },
-  HomeofficUI: { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice-ui', label: 'Homeoffice UI', desc: 'Home office management dashboard',            cluster: 'a-cluster' },
+const REPOS: Record<string, { repo: string; label: string; desc: string; cluster: ClusterName; routePrefix: string }> = {
+  Web:         { repo: 'quarkusdroneshop/quarkusdroneshop-web',           label: 'Web',           desc: 'Order intake web frontend',                   cluster: 'b-cluster', routePrefix: 'web-quarkusdroneshop-demo' },
+  Counter:     { repo: 'quarkusdroneshop/quarkusdroneshop-counter',       label: 'Counter',       desc: 'Event coordination and order routing',         cluster: 'b-cluster', routePrefix: 'counter-quarkusdroneshop-demo' },
+  QDCA10:      { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10',        label: 'QDCA10',        desc: 'DroneA10 series inventory and dispatch',       cluster: 'b-cluster', routePrefix: 'qdca10-quarkusdroneshop-demo' },
+  QDCA10Pro:   { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10pro',     label: 'QDCA10Pro',     desc: 'DroneA10Pro series inventory and dispatch',    cluster: 'b-cluster', routePrefix: 'qdca10pro-quarkusdroneshop-demo' },
+  Inventory:   { repo: 'quarkusdroneshop/quarkusdroneshop-inventory',     label: 'Inventory',     desc: 'Drone inventory management and replenishment', cluster: 'b-cluster', routePrefix: 'inventory-quarkusdroneshop-demo' },
+  Homeoffice:  { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice',    label: 'Homeoffice',    desc: 'Backend GraphQL API service',                  cluster: 'a-cluster', routePrefix: 'homeoffice-backend-quarkusdroneshop-demo' },
+  HomeofficUI: { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice-ui', label: 'Homeoffice UI', desc: 'Home office management dashboard',             cluster: 'a-cluster', routePrefix: 'homeoffice-ui-quarkusdroneshop-demo' },
 };
 
 function relativeTime(iso: string): string {
@@ -160,6 +159,8 @@ const defaultMeta: ComponentMeta = {
 };
 
 export class SystemComponents extends React.Component<{}, State> {
+  static contextType = SettingsContext;
+  context!: React.ContextType<typeof SettingsContext>;
   private intervalId: number | null = null;
 
   constructor(props: {}) {
@@ -214,9 +215,22 @@ export class SystemComponents extends React.Component<{}, State> {
       .catch(() => this.setState({ backendHealth: 'error' }));
   }
 
+  buildHealthInputs(): { name: string; url: string }[] {
+    const { settings } = this.context;
+    const { clusterDomains, serviceCluster } = settings;
+    return Object.keys(REPOS).map(key => {
+      const cluster = serviceCluster[key] ?? REPOS[key].cluster;
+      const domain = clusterDomains[cluster] ?? '';
+      const routePrefix = REPOS[key].routePrefix;
+      const url = domain ? `http://${routePrefix}.${domain}/q/health` : '';
+      return { name: key, url };
+    });
+  }
+
   loadServiceHealth() {
+    const inputs = this.buildHealthInputs();
     client
-      .query({ query: GET_SERVICE_HEALTH, fetchPolicy: 'no-cache' })
+      .query({ query: GET_SERVICE_HEALTH, variables: { inputs }, fetchPolicy: 'no-cache' })
       .then(res => {
         const checks: { name: string; status: string }[] = res?.data?.serviceHealthChecks ?? [];
         const map: Record<string, ServiceStatus> = {};
@@ -228,7 +242,6 @@ export class SystemComponents extends React.Component<{}, State> {
         this.setState({ serviceHealth: map });
       })
       .catch(() => {
-        // バックエンドに接続できない場合は全て UNKNOWN
         const map: Record<string, ServiceStatus> =
           Object.fromEntries(Object.keys(REPOS).map(k => [k, 'UNKNOWN' as ServiceStatus]));
         map['HomeofficUI'] = 'UP';

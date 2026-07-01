@@ -8,6 +8,7 @@ import { SystemComponents } from '@app/SystemComponents/SystemComponents';
 import { OrderBoard } from '@app/OrderBoard/OrderBoard';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
+import { ClusterSettings } from '@app/Settings/Cluster/ClusterSettings';
 import { NotFound } from '@app/NotFound/NotFound';
 import { useDocumentTitle } from '@app/utils/useDocumentTitle';
 import { LastLocationProvider, useLastLocation } from 'react-router-last-location';
@@ -106,6 +107,13 @@ const routes: AppRouteConfig[] = [
         label: 'Profile',
         path: '/settings/profile',
         title: 'Quarkus Droneshop | Profile Settings',
+      },
+      {
+        component: ClusterSettings,
+        exact: true,
+        label: 'Cluster',
+        path: '/settings/cluster',
+        title: 'Quarkus Droneshop | Cluster Settings',
       },
     ],
   },
