@@ -48,17 +48,17 @@ function formatMs(ms: number): string {
   return `${min}m ${sec}s`;
 }
 
-// デモ用スケール: 1ms の実処理時間 = DEMO_SCALE ms の配送時間として換算
-// DEMO_SCALE = 86_400 → 1秒の処理 ≈ 1日の配送時間
-const DEMO_SCALE = 86_400;
+// Demo scale: maps real processing ms to simulated delivery time.
+// DEMO_SCALE = 17_280 → typical ~12,500ms processing ≈ 2.5 days delivery
+const DEMO_SCALE = 17_280;
 
 function formatDeliveryTime(ms: number): string {
   const scaled = ms * DEMO_SCALE;
   const totalHours = Math.floor(scaled / 3_600_000);
   const days  = Math.floor(totalHours / 24);
   const hours = totalHours % 24;
-  if (days > 0) return `${days}日 ${hours}時間`;
-  return `${hours}時間`;
+  if (days > 0) return `${days}d ${hours}h`;
+  return `${hours}h`;
 }
 
 export class AverageOrderTimeChart extends React.Component<{}, State> {
@@ -132,23 +132,23 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
     // ChartBullet スケール
     let MAX_VAL: number, WARN_VAL: number, CRIT_VAL: number, displayValue: number;
     if (demoMode) {
-      // デモ: 生ms で表現した 2日/5日/7日 の閾値
+      // Demo: thresholds at 2 days (warn) / 3 days (crit) / 4 days (max)
       WARN_VAL = Math.round(2 * 86_400_000 / DEMO_SCALE);
-      CRIT_VAL = Math.round(5 * 86_400_000 / DEMO_SCALE);
-      MAX_VAL  = Math.round(7 * 86_400_000 / DEMO_SCALE);
+      CRIT_VAL = Math.round(3 * 86_400_000 / DEMO_SCALE);
+      MAX_VAL  = Math.round(4 * 86_400_000 / DEMO_SCALE);
       displayValue = hasData ? Math.min(averageOrderUpTime, MAX_VAL) : 1;
     } else {
-      // 通常: 2分/5分/10分 (ms)
+      // Normal: 2min / 5min / 10min (ms)
       WARN_VAL = 120_000;
       CRIT_VAL = 300_000;
       MAX_VAL  = 600_000;
       displayValue = hasData ? Math.min(averageOrderUpTime, MAX_VAL) : 1;
     }
 
-    const warnLabel = demoMode ? '警告 (2日)' : '警告 (2分)';
-    const critLabel = demoMode ? '危険 (5日)' : '危険 (5分)';
-    const benchGood = demoMode ? '優良: 2日以内' : '優良: 2分以内';
-    const benchObj  = demoMode ? '目標: 5日以内' : '目標: 5分以内';
+    const warnLabel = demoMode ? 'Warning (2d)' : 'Warning (2m)';
+    const critLabel = demoMode ? 'Critical (3d)' : 'Critical (5m)';
+    const benchGood = demoMode ? 'Good: within 2 days' : 'Good: within 2 min';
+    const benchObj  = demoMode ? 'Target: within 3 days' : 'Target: within 5 min';
 
     return (
       <Card isHoverable style={{ width: '100%', minWidth: '480px' }}>
@@ -174,9 +174,9 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
             comparativeWarningMeasureData={[{ name: warnLabel, y: WARN_VAL }]}
             comparativeErrorMeasureData={[{ name: critLabel, y: CRIT_VAL }]}
             qualitativeRangeData={[
-              { name: demoMode ? '7日超' : '10分超', y: MAX_VAL },
-              { name: demoMode ? '5日以内' : '5分以内', y: CRIT_VAL },
-              { name: demoMode ? '2日以内' : '2分以内', y: WARN_VAL },
+              { name: demoMode ? 'Over 4d' : 'Over 10m', y: MAX_VAL },
+              { name: demoMode ? 'Within 3d' : 'Within 5m', y: CRIT_VAL },
+              { name: demoMode ? 'Within 2d' : 'Within 2m', y: WARN_VAL },
             ]}
             labels={({ datum }) => `${datum.name}: ${fmt(datum.y)}`}
           />
