@@ -106,14 +106,16 @@ interface State {
   serviceHealth: Record<string, ServiceStatus>;
 }
 
-const REPOS: Record<string, { repo: string; label: string; desc: string }> = {
-  Web:         { repo: 'quarkusdroneshop/quarkusdroneshop-web',           label: 'Web',           desc: 'Order intake web frontend' },
-  Counter:     { repo: 'quarkusdroneshop/quarkusdroneshop-counter',       label: 'Counter',       desc: 'Event coordination and order routing' },
-  QDCA10:      { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10',        label: 'QDCA10',        desc: 'DroneA10 series inventory and dispatch' },
-  QDCA10Pro:   { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10pro',     label: 'QDCA10Pro',     desc: 'DroneA10Pro series inventory and dispatch' },
-  Inventory:   { repo: 'quarkusdroneshop/quarkusdroneshop-inventory',     label: 'Inventory',     desc: 'Drone inventory management and replenishment' },
-  Homeoffice:  { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice',    label: 'Homeoffice',    desc: 'Backend GraphQL API service' },
-  HomeofficUI: { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice-ui', label: 'Homeoffice UI', desc: 'Home office management dashboard' },
+type ClusterName = 'a-cluster' | 'b-cluster';
+
+const REPOS: Record<string, { repo: string; label: string; desc: string; cluster: ClusterName }> = {
+  Web:         { repo: 'quarkusdroneshop/quarkusdroneshop-web',           label: 'Web',           desc: 'Order intake web frontend',                  cluster: 'b-cluster' },
+  Counter:     { repo: 'quarkusdroneshop/quarkusdroneshop-counter',       label: 'Counter',       desc: 'Event coordination and order routing',        cluster: 'b-cluster' },
+  QDCA10:      { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10',        label: 'QDCA10',        desc: 'DroneA10 series inventory and dispatch',      cluster: 'b-cluster' },
+  QDCA10Pro:   { repo: 'quarkusdroneshop/quarkusdroneshop-qdca10pro',     label: 'QDCA10Pro',     desc: 'DroneA10Pro series inventory and dispatch',   cluster: 'b-cluster' },
+  Inventory:   { repo: 'quarkusdroneshop/quarkusdroneshop-inventory',     label: 'Inventory',     desc: 'Drone inventory management and replenishment', cluster: 'b-cluster' },
+  Homeoffice:  { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice',    label: 'Homeoffice',    desc: 'Backend GraphQL API service',                 cluster: 'a-cluster' },
+  HomeofficUI: { repo: 'quarkusdroneshop/quarkusdroneshop-homeoffice-ui', label: 'Homeoffice UI', desc: 'Home office management dashboard',            cluster: 'a-cluster' },
 };
 
 function relativeTime(iso: string): string {
@@ -531,8 +533,17 @@ export class SystemComponents extends React.Component<{}, State> {
     );
   }
 
+  clusterBadge(cluster: ClusterName) {
+    const color = cluster === 'a-cluster' ? 'purple' : 'cyan';
+    return (
+      <Label color={color} isCompact style={{ fontFamily: 'monospace', fontSize: '0.7em' }}>
+        {cluster}
+      </Label>
+    );
+  }
+
   componentRow(key: string, chartContent: React.ReactNode, detailContent: React.ReactNode) {
-    const { label } = REPOS[key];
+    const { label, cluster } = REPOS[key];
     return (
       <DataListItem key={key} id={key}>
         <DataListItemRow>
@@ -544,6 +555,7 @@ export class SystemComponents extends React.Component<{}, State> {
                     <FlexItem>
                       <Title headingLevel="h3" size="xl">{label}</Title>
                     </FlexItem>
+                    <FlexItem>{this.clusterBadge(cluster)}</FlexItem>
                     <FlexItem>{this.healthLabel(key)}</FlexItem>
                   </Flex>
                   <small style={{ color: 'var(--pf-global--Color--200)' }}>
