@@ -182,7 +182,7 @@ class ClusterSettingsPage extends React.Component<{}, State> {
 
           {/* Service Cluster Assignment */}
           <Card style={{ marginBottom: '24px' }}>
-            <CardTitle>Service Cluster Assignment</CardTitle>
+            <CardTitle>Service Cluster Assignment and Health Check URL</CardTitle>
             <CardBody>
               <DataList aria-label="service cluster assignment" isCompact>
                 {Object.keys(SERVICE_LABELS).map(key => {
