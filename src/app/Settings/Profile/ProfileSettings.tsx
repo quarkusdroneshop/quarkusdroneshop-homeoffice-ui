@@ -17,15 +17,25 @@ import {
   Select,
   SelectVariant,
   SelectOptionObject,
+  Label,
 } from '@patternfly/react-core';
-import { SettingsContext } from '../../utils/SettingsContext';
+import { SettingsContext, ClusterName } from '../../utils/SettingsContext';
 
-const SITES = [
-  { key: 'all', label: 'すべてのサイト' },
-  { key: 'site-a', label: 'Site A（東京）' },
-  { key: 'site-b', label: 'Site B（大阪）' },
-  { key: 'site-c', label: 'Site C（福岡）' },
-];
+const CLUSTER_COLORS: Record<ClusterName, 'purple' | 'cyan' | 'orange'> = {
+  'a-cluster': 'purple',
+  'b-cluster': 'cyan',
+  'c-cluster': 'orange',
+};
+
+/** Extract a short identifier from a domain string.
+ *  e.g. "apps.ocp.49dgc.sandbox1447.opentlc.com" → "49dgc.sandbox1447" */
+function shortDomain(domain: string): string {
+  if (!domain) return '(not configured)';
+  // Remove leading "apps.ocp." and trailing ".opentlc.com" if present
+  return domain
+    .replace(/^apps\.ocp\./, '')
+    .replace(/\.opentlc\.com$/, '');
+}
 
 type State = {
   activeSite: string;
@@ -63,16 +73,30 @@ class ProfileSettingsPage extends React.Component<{}, State> {
     setTimeout(() => this.setState({ saved: false }), 3000);
   }
 
+  buildSiteOptions() {
+    const { clusterDomains } = this.context.settings;
+    const clusters: ClusterName[] = ['a-cluster', 'b-cluster', 'c-cluster'];
+    return [
+      { key: 'all', label: 'All Sites', cluster: null as ClusterName | null },
+      ...clusters.map(c => ({
+        key: c,
+        label: `${c} — ${shortDomain(clusterDomains[c])}`,
+        cluster: c,
+      })),
+    ];
+  }
+
   render() {
     const { activeSite, isOpen, saved } = this.state;
-    const siteLabel = SITES.find(s => s.key === activeSite)?.label ?? activeSite;
+    const sites = this.buildSiteOptions();
+    const selectedLabel = sites.find(s => s.key === activeSite)?.label ?? activeSite;
 
     return (
       <React.Fragment>
         <PageSection variant={PageSectionVariants.light}>
           <TextContent>
-            <Text component="h1">プロフィール設定</Text>
-            <Text component="p">表示サイトの選択などユーザー固有の設定を管理します</Text>
+            <Text component="h1">Profile Settings</Text>
+            <Text component="p">Manage user-specific settings such as the active site for dashboard display.</Text>
           </TextContent>
         </PageSection>
 
@@ -80,35 +104,48 @@ class ProfileSettingsPage extends React.Component<{}, State> {
 
         <PageSection variant={PageSectionVariants.default}>
           {saved && (
-            <Alert variant="success" title="設定を保存しました" style={{ marginBottom: '16px' }} />
+            <Alert variant="success" title="Settings saved" style={{ marginBottom: '16px' }} />
           )}
           <Card>
-            <CardTitle>表示対象サイト</CardTitle>
+            <CardTitle>Active Site</CardTitle>
             <CardBody>
               <Form>
                 <FormGroup
-                  label="アクティブサイト"
+                  label="Site"
                   fieldId="active-site"
-                  helperText="選択したサイトのデータのみ Dashboard に表示します"
+                  helperText="Only data from the selected site will be shown on the Dashboard. Sites are derived from Cluster Settings."
                 >
                   <Select
                     id="active-site"
                     variant={SelectVariant.single}
                     isOpen={isOpen}
-                    selections={siteLabel}
+                    selections={selectedLabel}
                     onToggle={this.onToggle}
                     onSelect={this.onSelect}
                   >
-                    {SITES.map(s => (
+                    {sites.map(s => (
                       <SelectOption key={s.key} value={s.key}>
-                        {s.label}
+                        {s.cluster ? (
+                          <>
+                            <Label
+                              color={CLUSTER_COLORS[s.cluster]}
+                              isCompact
+                              style={{ fontFamily: 'monospace', fontSize: '0.75em', marginRight: 8 }}
+                            >
+                              {s.cluster}
+                            </Label>
+                            {shortDomain(this.context.settings.clusterDomains[s.cluster])}
+                          </>
+                        ) : (
+                          <strong>{s.label}</strong>
+                        )}
                       </SelectOption>
                     ))}
                   </Select>
                 </FormGroup>
 
                 <ActionGroup>
-                  <Button variant="primary" onClick={this.handleSave}>保存</Button>
+                  <Button variant="primary" onClick={this.handleSave}>Save</Button>
                 </ActionGroup>
               </Form>
             </CardBody>
