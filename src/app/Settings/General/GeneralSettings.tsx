@@ -108,8 +108,8 @@ class GeneralSettingsPage extends React.Component<{}, State> {
       <React.Fragment>
         <PageSection variant={PageSectionVariants.light}>
           <TextContent>
-            <Text component="h1">一般設定</Text>
-            <Text component="p">ポーリング間隔や在庫アラートの閾値などを設定します</Text>
+            <Text component="h1">General Settings</Text>
+            <Text component="p">Configure polling interval, inventory alert threshold, and data management.</Text>
           </TextContent>
         </PageSection>
 
@@ -117,12 +117,12 @@ class GeneralSettingsPage extends React.Component<{}, State> {
 
         <PageSection variant={PageSectionVariants.default}>
           {saved && (
-            <Alert variant="success" title="設定を保存しました" style={{ marginBottom: '16px' }} />
+            <Alert variant="success" title="Settings saved" style={{ marginBottom: '16px' }} />
           )}
           {resetSuccess && (
             <Alert
               variant="success"
-              title="データリセット完了"
+              title="Data Reset Complete"
               actionClose={<AlertActionCloseButton onClose={() => this.setState({ resetSuccess: null })} />}
               style={{ marginBottom: '16px' }}
             >
@@ -132,7 +132,7 @@ class GeneralSettingsPage extends React.Component<{}, State> {
           {resetError && (
             <Alert
               variant="danger"
-              title="データリセット失敗"
+              title="Data Reset Failed"
               actionClose={<AlertActionCloseButton onClose={() => this.setState({ resetError: null })} />}
               style={{ marginBottom: '16px' }}
             >
@@ -140,15 +140,15 @@ class GeneralSettingsPage extends React.Component<{}, State> {
             </Alert>
           )}
 
-          {/* データ取得設定 */}
+          {/* Data Fetching */}
           <Card style={{ marginBottom: '24px' }}>
-            <CardTitle>データ取得設定</CardTitle>
+            <CardTitle>Data Fetching</CardTitle>
             <CardBody>
               <Form>
                 <FormGroup
-                  label={`ポーリング間隔: ${pollingInterval} 秒`}
+                  label={`Polling Interval: ${pollingInterval} sec`}
                   fieldId="polling-interval"
-                  helperText="Dashboard や OrderBoard のデータ自動更新間隔（1〜60 秒）"
+                  helperText="Auto-refresh interval for Dashboard and Order Board data (1–60 sec)"
                 >
                   <Slider
                     id="polling-interval"
@@ -164,9 +164,9 @@ class GeneralSettingsPage extends React.Component<{}, State> {
                 </FormGroup>
 
                 <FormGroup
-                  label={`在庫枯渇アラート閾値: ${alertThreshold} %`}
+                  label={`Inventory Alert Threshold: ${alertThreshold} %`}
                   fieldId="alert-threshold"
-                  helperText="在庫残量がこの割合を下回ると Dashboard にアラートを表示します（1〜50 %）"
+                  helperText="An alert is shown on the Dashboard when inventory drops below this percentage (1–50 %)"
                 >
                   <Slider
                     id="alert-threshold"
@@ -182,33 +182,33 @@ class GeneralSettingsPage extends React.Component<{}, State> {
                 </FormGroup>
 
                 <ActionGroup>
-                  <Button variant="primary" onClick={this.handleSave}>保存</Button>
+                  <Button variant="primary" onClick={this.handleSave}>Save</Button>
                   <Button
                     variant="link"
                     onClick={() => this.setState({ pollingInterval: 3, alertThreshold: 20 })}
                   >
-                    デフォルトに戻す
+                    Reset to Defaults
                   </Button>
                 </ActionGroup>
               </Form>
             </CardBody>
           </Card>
 
-          {/* データリセット */}
+          {/* Data Reset */}
           <Card style={{ borderLeft: '4px solid #c9190b' }}>
             <CardTitle>
               <span style={{ color: '#c9190b', fontWeight: 700 }}>
                 <ExclamationTriangleIcon style={{ marginRight: '8px' }} />
-                データリセット
+                Data Reset
               </span>
             </CardTitle>
             <CardBody>
               <TextContent style={{ marginBottom: '16px' }}>
                 <Text component="p">
-                  データベース上の全注文データを削除します。この操作は取り消せません。
+                  Deletes all order data from the database. This action cannot be undone.
                 </Text>
                 <Text component="small" style={{ color: 'var(--pf-global--Color--200)' }}>
-                  削除対象: orders / lineItems / storeServerSales / productSales / productItemSales / averageOrderUpTime
+                  Targets: orders / lineItems / storeServerSales / productSales / productItemSales / averageOrderUpTime
                 </Text>
               </TextContent>
               <Button
@@ -217,16 +217,16 @@ class GeneralSettingsPage extends React.Component<{}, State> {
                 isDisabled={resetting}
                 onClick={() => this.setState({ resetModalOpen: true })}
               >
-                {resetting ? 'リセット中...' : 'データをリセット'}
+                {resetting ? 'Resetting...' : 'Reset Data'}
               </Button>
             </CardBody>
           </Card>
         </PageSection>
 
-        {/* 確認モーダル */}
+        {/* Confirmation Modal */}
         <Modal
           variant={ModalVariant.small}
-          title="データリセットの確認"
+          title="Confirm Data Reset"
           titleIconVariant="warning"
           isOpen={resetModalOpen}
           onClose={() => this.setState({ resetModalOpen: false })}
@@ -236,23 +236,23 @@ class GeneralSettingsPage extends React.Component<{}, State> {
               variant="danger"
               onClick={this.handleReset}
             >
-              リセットする
+              Reset
             </Button>,
             <Button
               key="cancel"
               variant="link"
               onClick={() => this.setState({ resetModalOpen: false })}
             >
-              キャンセル
+              Cancel
             </Button>,
           ]}
         >
           <TextContent>
             <Text component="p">
-              <strong>全ての注文データが削除されます。</strong>
+              <strong>All order data will be permanently deleted.</strong>
             </Text>
             <Text component="p">
-              この操作は取り消せません。本当に実行しますか？
+              This action cannot be undone. Are you sure?
             </Text>
           </TextContent>
         </Modal>
