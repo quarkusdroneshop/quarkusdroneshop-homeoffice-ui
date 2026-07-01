@@ -60,6 +60,16 @@ const GET_INVENTORY = gql`
   }
 `;
 
+const GET_SERVICE_HEALTH = gql`
+  query ServiceHealthChecks {
+    serviceHealthChecks {
+      name
+      status
+      detail
+    }
+  }
+`;
+
 interface InventoryLevel {
   itemName: string;
   remaining: number;
@@ -82,6 +92,8 @@ interface ComponentMeta {
   githubError?: string;
 }
 
+type ServiceStatus = 'UP' | 'DOWN' | 'UNKNOWN' | 'CHECKING';
+
 interface State {
   isDrawerExpanded: boolean;
   drawerTitle: string;
@@ -91,6 +103,7 @@ interface State {
   inventoryLoading: boolean;
   github: Record<string, ComponentMeta>;
   backendHealth: 'ok' | 'error' | 'checking';
+  serviceHealth: Record<string, ServiceStatus>;
 }
 
 const REPOS: Record<string, { repo: string; label: string; desc: string }> = {
@@ -149,6 +162,9 @@ export class SystemComponents extends React.Component<{}, State> {
 
   constructor(props: {}) {
     super(props);
+    const initialServiceHealth: Record<string, ServiceStatus> =
+      Object.fromEntries(Object.keys(REPOS).map(k => [k, 'CHECKING' as ServiceStatus]));
+
     this.state = {
       isDrawerExpanded: false,
       drawerTitle: '',
@@ -158,6 +174,7 @@ export class SystemComponents extends React.Component<{}, State> {
       inventoryLoading: true,
       github: Object.fromEntries(Object.keys(REPOS).map(k => [k, { ...defaultMeta }])),
       backendHealth: 'checking',
+      serviceHealth: initialServiceHealth,
     };
     this.onCloseDrawerClick = this.onCloseDrawerClick.bind(this);
   }
@@ -166,9 +183,11 @@ export class SystemComponents extends React.Component<{}, State> {
     this.loadInventory();
     this.loadGitHub();
     this.checkBackendHealth();
+    this.loadServiceHealth();
     this.intervalId = window.setInterval(() => {
       this.loadInventory();
       this.checkBackendHealth();
+      this.loadServiceHealth();
     }, 30000);
   }
 
@@ -191,6 +210,28 @@ export class SystemComponents extends React.Component<{}, State> {
       .query({ query: GET_INVENTORY, fetchPolicy: 'no-cache' })
       .then(() => this.setState({ backendHealth: 'ok' }))
       .catch(() => this.setState({ backendHealth: 'error' }));
+  }
+
+  loadServiceHealth() {
+    client
+      .query({ query: GET_SERVICE_HEALTH, fetchPolicy: 'no-cache' })
+      .then(res => {
+        const checks: { name: string; status: string }[] = res?.data?.serviceHealthChecks ?? [];
+        const map: Record<string, ServiceStatus> = {};
+        checks.forEach(c => {
+          map[c.name] = (c.status === 'UP' ? 'UP' : c.status === 'DOWN' ? 'DOWN' : 'UNKNOWN') as ServiceStatus;
+        });
+        // HomeofficUI は自分自身が表示できているので常に UP
+        map['HomeofficUI'] = 'UP';
+        this.setState({ serviceHealth: map });
+      })
+      .catch(() => {
+        // バックエンドに接続できない場合は全て UNKNOWN
+        const map: Record<string, ServiceStatus> =
+          Object.fromEntries(Object.keys(REPOS).map(k => [k, 'UNKNOWN' as ServiceStatus]));
+        map['HomeofficUI'] = 'UP';
+        this.setState({ serviceHealth: map });
+      });
   }
 
   loadGitHub() {
@@ -310,15 +351,11 @@ export class SystemComponents extends React.Component<{}, State> {
     );
   }
 
-  healthLabel(key: string, overrideHealth?: 'ok' | 'error' | 'checking') {
-    if (overrideHealth === 'checking') return <Label color="blue" isCompact><Spinner size="sm" /> Checking</Label>;
-    if (overrideHealth === 'error')    return <Label color="red" isCompact><ExclamationTriangleIcon /> No Response</Label>;
-    if (overrideHealth === 'ok')       return <Label color="green" isCompact><CheckCircleIcon /> Running</Label>;
-
-    const g = this.state.github[key];
-    if (g.loading)          return <Label color="blue" isCompact><Spinner size="sm" /></Label>;
-    if (g.health === 'ok')   return <Label color="green" isCompact><CheckCircleIcon /> OK</Label>;
-    if (g.health === 'warn') return <Label color="orange" isCompact><ExclamationTriangleIcon /> Check</Label>;
+  healthLabel(key: string) {
+    const status: ServiceStatus = this.state.serviceHealth[key] ?? 'CHECKING';
+    if (status === 'CHECKING') return <Label color="blue" isCompact><Spinner size="sm" /> Checking</Label>;
+    if (status === 'UP')       return <Label color="green" isCompact><CheckCircleIcon /> Running</Label>;
+    if (status === 'DOWN')     return <Label color="red" isCompact><ExclamationTriangleIcon /> Down</Label>;
     return <Label color="grey" isCompact>Unknown</Label>;
   }
 
@@ -494,7 +531,7 @@ export class SystemComponents extends React.Component<{}, State> {
     );
   }
 
-  componentRow(key: string, chartContent: React.ReactNode, detailContent: React.ReactNode, overrideHealth?: 'ok' | 'error' | 'checking') {
+  componentRow(key: string, chartContent: React.ReactNode, detailContent: React.ReactNode) {
     const { label } = REPOS[key];
     return (
       <DataListItem key={key} id={key}>
@@ -507,7 +544,7 @@ export class SystemComponents extends React.Component<{}, State> {
                     <FlexItem>
                       <Title headingLevel="h3" size="xl">{label}</Title>
                     </FlexItem>
-                    <FlexItem>{this.healthLabel(key, overrideHealth)}</FlexItem>
+                    <FlexItem>{this.healthLabel(key)}</FlexItem>
                   </Flex>
                   <small style={{ color: 'var(--pf-global--Color--200)' }}>
                     {REPOS[key].desc}
@@ -614,8 +651,7 @@ export class SystemComponents extends React.Component<{}, State> {
               <Text component="h3">GraphQL Backend</Text>
               <Text>Status: {backendHealth === 'ok' ? '✅ Responding' : backendHealth === 'error' ? '❌ No response' : '⏳ Checking'}</Text>
             </TextContent>
-          ),
-          backendHealth)}
+          ))}
 
         {this.componentRow('HomeofficUI',
           this.commitChart('HomeofficUI'),
@@ -624,8 +660,7 @@ export class SystemComponents extends React.Component<{}, State> {
               <Text component="h3">This Application</Text>
               <Text>The dashboard is visible — service is running.</Text>
             </TextContent>
-          ),
-          'ok')}
+          ))}
       </DataList>
     );
 
