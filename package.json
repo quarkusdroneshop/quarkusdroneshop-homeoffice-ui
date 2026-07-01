@@ -82,8 +82,8 @@
     "webpack-merge": "^5.10.0"
   },
   "dependencies": {
-    "@axe-core/react": "^4.10.1",
     "@apollo/react-hooks": "^4.0.0",
+    "@axe-core/react": "^4.10.1",
     "@patternfly/react-charts": "^7.2.0",
     "@patternfly/react-core": "^4.278.1",
     "@patternfly/react-icons": "^4.9.2",
@@ -95,6 +95,7 @@
     "d3": "^7.9.0",
     "express": "^4.21.2",
     "graphql": "^15.9.0",
+    "http-proxy-middleware": "^4.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-last-location": "^2.0.1",

@@ -79,6 +79,7 @@ interface ComponentMeta {
   openIssuesCount: number;
   weeklyData: WeekData[];   // last 26 weeks, oldest→newest
   health: 'ok' | 'warn' | 'unknown';
+  githubError?: string;
 }
 
 interface State {
@@ -117,6 +118,21 @@ function weekLabel(unixSec: number): string {
 
 const emptyWeeklyData: WeekData[] = Array.from({ length: 26 }, (_, i) => ({ week: 0, total: 0 }));
 
+// GitHub の /stats/* は初回 202 (計算中) を返すことがある。最大 retries 回リトライする。
+function fetchWithRetry(url: string, retries = 4, delayMs = 4000): Promise<any> {
+  return fetch(url).then(r => {
+    if (r.status === 202) {
+      if (retries > 0) {
+        return new Promise<void>(resolve => setTimeout(resolve, delayMs))
+          .then(() => fetchWithRetry(url, retries - 1, delayMs));
+      }
+      throw new Error('GitHub stats not ready after retries (202)');
+    }
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  });
+}
+
 const defaultMeta: ComponentMeta = {
   loading: true,
   pushedAt: '',
@@ -125,6 +141,7 @@ const defaultMeta: ComponentMeta = {
   openIssuesCount: 0,
   weeklyData: emptyWeeklyData,
   health: 'unknown',
+  githubError: undefined,
 };
 
 export class SystemComponents extends React.Component<{}, State> {
@@ -183,8 +200,8 @@ export class SystemComponents extends React.Component<{}, State> {
     keys.forEach(key => {
       const { repo } = REPOS[key];
       Promise.all([
-        fetch(`https://api.github.com/repos/${repo}`).then(r => r.json()),
-        fetch(`https://api.github.com/repos/${repo}/stats/commit_activity`).then(r => r.json()),
+        fetchWithRetry(`https://api.github.com/repos/${repo}`),
+        fetchWithRetry(`https://api.github.com/repos/${repo}/stats/commit_activity`),
       ])
         .then(([repoData, activity]) => {
           let weeklyData: WeekData[] = emptyWeeklyData;
@@ -218,11 +235,13 @@ export class SystemComponents extends React.Component<{}, State> {
             return { github: updated };
           });
         })
-        .catch(() => {
+        .catch((err) => {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.error(`[GitHub] ${key}: ${errMsg}`);
           this.setState(prev => {
             const updated = {
               ...prev.github,
-              [key]: { ...prev.github[key], loading: false },
+              [key]: { ...prev.github[key], loading: false, githubError: errMsg },
             };
             completed++;
             if (completed === keys.length) this.checkAndPublishAlerts(updated);
@@ -307,6 +326,7 @@ export class SystemComponents extends React.Component<{}, State> {
   commitChart(key: string) {
     const g = this.state.github[key];
     if (g.loading) return <Spinner size="md" />;
+    if (g.githubError) return <span style={{ fontSize: 11, color: '#c9190b' }}>GitHub API error: {g.githubError}</span>;
 
     const weeks = g.weeklyData;
     const maxY = Math.max(...weeks.map(w => w.total), 1);

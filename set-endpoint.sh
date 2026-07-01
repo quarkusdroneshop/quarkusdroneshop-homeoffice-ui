@@ -1,6 +1,9 @@
 #!/bin/bash
 
-ROUTE=$(oc get route homeoffice-backend -o jsonpath='{.spec.host}' -n quarkusdroneshop-demo)
-echo "REACT_APP_GRAPHQL_ENDPOINT=https://$ROUTE/graphql" > .env
+# REACT_APP_GRAPHQL_ENDPOINT は相対パス固定。
+# ブラウザは UI ホストの /graphql に送り、server.js が GRAPHQL_BACKEND_URL に転送する。
 CORS=$(oc get ingresses.config.openshift.io cluster -o jsonpath='{.spec.domain}')
-echo "ALLOWED_ORIGINS=https://homeoffice-ui-quarkusdroneshop-demo.$CORS" >> .env
+cat > .env <<EOF
+REACT_APP_GRAPHQL_ENDPOINT=/graphql
+ALLOWED_ORIGINS=https://homeoffice-ui-quarkusdroneshop-demo.${CORS}
+EOF

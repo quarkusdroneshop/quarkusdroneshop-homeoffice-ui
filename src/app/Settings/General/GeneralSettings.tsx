@@ -14,13 +14,33 @@ import {
   ActionGroup,
   Button,
   Alert,
+  AlertActionCloseButton,
+  Modal,
+  ModalVariant,
+  Spinner,
 } from '@patternfly/react-core';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-triangle-icon';
+import { gql } from '@apollo/client';
+import client from 'src/apolloclient';
 import { SettingsContext } from '../../utils/SettingsContext';
 
+const RESET_DATA = gql`
+  mutation ResetData {
+    resetData {
+      success
+      message
+    }
+  }
+`;
+
 type State = {
-  pollingInterval: number;  // seconds
-  alertThreshold: number;   // percent
+  pollingInterval: number;
+  alertThreshold: number;
   saved: boolean;
+  resetModalOpen: boolean;
+  resetting: boolean;
+  resetSuccess: string | null;
+  resetError: string | null;
 };
 
 class GeneralSettingsPage extends React.Component<{}, State> {
@@ -29,8 +49,17 @@ class GeneralSettingsPage extends React.Component<{}, State> {
 
   constructor(props: {}) {
     super(props);
-    this.state = { pollingInterval: 3, alertThreshold: 20, saved: false };
+    this.state = {
+      pollingInterval: 3,
+      alertThreshold: 20,
+      saved: false,
+      resetModalOpen: false,
+      resetting: false,
+      resetSuccess: null,
+      resetError: null,
+    };
     this.handleSave = this.handleSave.bind(this);
+    this.handleReset = this.handleReset.bind(this);
   }
 
   componentDidMount() {
@@ -52,8 +81,28 @@ class GeneralSettingsPage extends React.Component<{}, State> {
     setTimeout(() => this.setState({ saved: false }), 3000);
   }
 
+  handleReset() {
+    this.setState({ resetting: true, resetModalOpen: false });
+    client
+      .mutate({ mutation: RESET_DATA })
+      .then(res => {
+        const result = res?.data?.resetData;
+        if (result?.success) {
+          this.setState({ resetting: false, resetSuccess: result.message });
+        } else {
+          this.setState({ resetting: false, resetError: result?.message ?? 'リセットに失敗しました' });
+        }
+      })
+      .catch(err => {
+        this.setState({ resetting: false, resetError: String(err) });
+      });
+  }
+
   render() {
-    const { pollingInterval, alertThreshold, saved } = this.state;
+    const {
+      pollingInterval, alertThreshold, saved,
+      resetModalOpen, resetting, resetSuccess, resetError,
+    } = this.state;
 
     return (
       <React.Fragment>
@@ -70,7 +119,29 @@ class GeneralSettingsPage extends React.Component<{}, State> {
           {saved && (
             <Alert variant="success" title="設定を保存しました" style={{ marginBottom: '16px' }} />
           )}
-          <Card>
+          {resetSuccess && (
+            <Alert
+              variant="success"
+              title="データリセット完了"
+              actionClose={<AlertActionCloseButton onClose={() => this.setState({ resetSuccess: null })} />}
+              style={{ marginBottom: '16px' }}
+            >
+              {resetSuccess}
+            </Alert>
+          )}
+          {resetError && (
+            <Alert
+              variant="danger"
+              title="データリセット失敗"
+              actionClose={<AlertActionCloseButton onClose={() => this.setState({ resetError: null })} />}
+              style={{ marginBottom: '16px' }}
+            >
+              {resetError}
+            </Alert>
+          )}
+
+          {/* データ取得設定 */}
+          <Card style={{ marginBottom: '24px' }}>
             <CardTitle>データ取得設定</CardTitle>
             <CardBody>
               <Form>
@@ -122,7 +193,69 @@ class GeneralSettingsPage extends React.Component<{}, State> {
               </Form>
             </CardBody>
           </Card>
+
+          {/* データリセット */}
+          <Card style={{ borderLeft: '4px solid #c9190b' }}>
+            <CardTitle>
+              <span style={{ color: '#c9190b', fontWeight: 700 }}>
+                <ExclamationTriangleIcon style={{ marginRight: '8px' }} />
+                データリセット
+              </span>
+            </CardTitle>
+            <CardBody>
+              <TextContent style={{ marginBottom: '16px' }}>
+                <Text component="p">
+                  データベース上の全注文データを削除します。この操作は取り消せません。
+                </Text>
+                <Text component="small" style={{ color: 'var(--pf-global--Color--200)' }}>
+                  削除対象: orders / lineItems / storeServerSales / productSales / productItemSales / averageOrderUpTime
+                </Text>
+              </TextContent>
+              <Button
+                variant="danger"
+                isLoading={resetting}
+                isDisabled={resetting}
+                onClick={() => this.setState({ resetModalOpen: true })}
+              >
+                {resetting ? 'リセット中...' : 'データをリセット'}
+              </Button>
+            </CardBody>
+          </Card>
         </PageSection>
+
+        {/* 確認モーダル */}
+        <Modal
+          variant={ModalVariant.small}
+          title="データリセットの確認"
+          titleIconVariant="warning"
+          isOpen={resetModalOpen}
+          onClose={() => this.setState({ resetModalOpen: false })}
+          actions={[
+            <Button
+              key="confirm"
+              variant="danger"
+              onClick={this.handleReset}
+            >
+              リセットする
+            </Button>,
+            <Button
+              key="cancel"
+              variant="link"
+              onClick={() => this.setState({ resetModalOpen: false })}
+            >
+              キャンセル
+            </Button>,
+          ]}
+        >
+          <TextContent>
+            <Text component="p">
+              <strong>全ての注文データが削除されます。</strong>
+            </Text>
+            <Text component="p">
+              この操作は取り消せません。本当に実行しますか？
+            </Text>
+          </TextContent>
+        </Modal>
       </React.Fragment>
     );
   }

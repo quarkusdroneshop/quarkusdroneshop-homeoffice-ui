@@ -16,6 +16,14 @@ module.exports = merge(common('development'), {
     port: 8080,
     hot: true,
     historyApiFallback: true,
+    proxy: [
+      {
+        context: ['/graphql', '/q/'],
+        target: process.env.BACKEND_URL || 'http://localhost:9090',
+        changeOrigin: true,
+        secure: false,
+      },
+    ],
   },
   module: {
     rules: [
