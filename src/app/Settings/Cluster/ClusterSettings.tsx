@@ -211,7 +211,7 @@ class ClusterSettingsPage extends React.Component<{}, State> {
                             <Select
                               variant={SelectVariant.single}
                               isOpen={isOpen}
-                              onToggle={(_e, v) => this.setState({ openSelect: v ? key : null })}
+                              onToggle={(open) => this.setState({ openSelect: open ? key : null })}
                               onSelect={(_e, val) => this.setServiceCluster(key, val as ClusterName)}
                               selections={current}
                               aria-label={`${key} cluster`}
