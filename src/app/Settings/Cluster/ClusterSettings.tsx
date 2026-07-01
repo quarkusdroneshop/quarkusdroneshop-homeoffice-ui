@@ -171,7 +171,7 @@ class ClusterSettingsPage extends React.Component<{}, State> {
                       id={`${cluster}-domain`}
                       type="text"
                       value={domains[cluster]}
-                      onChange={(_e, val) => this.setDomain(cluster, val)}
+                      onChange={(val) => this.setDomain(cluster, val)}
                       placeholder="apps.ocp.xxxxx.sandboxYYYY.opentlc.com"
                     />
                   </FormGroup>
