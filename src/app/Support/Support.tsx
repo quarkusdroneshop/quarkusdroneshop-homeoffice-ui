@@ -226,7 +226,7 @@ class SupportPage extends React.Component<ISupportProps, State> {
                 orders.map(order => (
                   <Card key={order.orderId} isCompact style={{ marginBottom: '8px' }}>
                     <CardBody>
-                      <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapMd' }}>
+                      <Flex alignItems={{ default: 'alignItemsCenter' }} style={{ gap: '16px' }}>
                         <FlexItem flex={{ default: 'flex_1' }}>
                           <strong>{order.orderId}</strong> — {order.name}
                           <br />

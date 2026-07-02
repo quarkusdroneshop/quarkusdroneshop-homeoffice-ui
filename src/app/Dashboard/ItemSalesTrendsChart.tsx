@@ -19,7 +19,8 @@ import {
 import { gql, useQuery } from '@apollo/client';
 import client from 'src/apolloclient'
 
-export class ItemSalesTrendsChart extends React.Component {
+interface ItemSalesTrendsChartState { data: any[] }
+export class ItemSalesTrendsChart extends React.Component<Record<string, never>, ItemSalesTrendsChartState> {
     constructor(props) {
         super(props);
 

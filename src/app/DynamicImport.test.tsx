@@ -6,7 +6,7 @@ import { DynamicImport } from './DynamicImport';
 // jsdom では window.clearTimeout が定義されていない場合があるためスタブを用意する
 beforeAll(() => {
   if (typeof window.clearTimeout !== 'function') {
-    window.clearTimeout = (id?: number) => clearTimeout(id);
+    (window as any).clearTimeout = (id?: number) => clearTimeout(id);
   }
 });
 

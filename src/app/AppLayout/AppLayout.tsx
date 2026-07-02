@@ -15,7 +15,8 @@ import {
 } from '@patternfly/react-core';
 import { routes, IAppRoute, IAppRouteGroup } from '@app/routes';
 import logo from '@app/images/drone-16x16.png';
-import packageJson from '/package.json';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJson: { version: string } = require('../../package.json');
 import BellIcon from '@patternfly/react-icons/dist/js/icons/bell-icon';
 import ExclamationCircleIcon from '@patternfly/react-icons/dist/js/icons/exclamation-circle-icon';
 import { gql } from '@apollo/client';

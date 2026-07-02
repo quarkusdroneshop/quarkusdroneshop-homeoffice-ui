@@ -21,7 +21,10 @@ import CaretDownIcon from '@patternfly/react-icons/dist/js/icons/caret-down-icon
 import { gql, useQuery } from '@apollo/client';
 import client from 'src/apolloclient'
 
-export class StoreSalesChart extends React.Component {
+interface StoreSalesChartState { data: any[]; chartData: any[][]; productLegend: any[]; products: string[] }
+export class StoreSalesChart extends React.Component<Record<string, never>, StoreSalesChartState> {
+    intervalId: ReturnType<typeof setInterval> | undefined = undefined;
+
     constructor(props) {
       super(props);
       this.state = {
@@ -81,12 +84,12 @@ export class StoreSalesChart extends React.Component {
     ProcessGraphqlData(data) {
       const flatten = arr => arr.flat();
     
-      const stores = Array.from(new Set(data.map(item => item.store)));
-      const allItemSales = flatten(data.map(server => server.itemSales));
-    
-      const products = Array.from(new Set(allItemSales.map(i => i.item))).sort();
+      const stores: string[] = Array.from(new Set(data.map((item: any) => item.store as string)));
+      const allItemSales: any[] = flatten(data.map((server: any) => server.itemSales));
+
+      const products: string[] = Array.from(new Set(allItemSales.map((i: any) => i.item as string))).sort();
       const productLegend = products.map(product => ({ name: product }));
-      const chartData = Array.from({ length: products.length }, () => []);
+      const chartData: { name: string; x: string; y: number; revenue: number }[][] = Array.from({ length: products.length }, () => []);
     
       stores.forEach(store => {
         const storeRecords = data.filter(i => i.store === store);

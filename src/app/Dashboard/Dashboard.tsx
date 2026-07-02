@@ -103,7 +103,7 @@ export class Dashboard extends React.Component {
         {/* 商品チャート */}
         {visibleSections.sales && (
           <PageSection variant={PageSectionVariants.default}>
-            <Flex gap={{ default: 'gapLg' }} wrap={{ default: 'wrap' }}>
+            <Flex style={{ gap: '24px', flexWrap: 'wrap' }}>
               <FlexItem>
                 <ItemSalesChart />
               </FlexItem>

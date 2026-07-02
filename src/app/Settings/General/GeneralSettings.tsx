@@ -158,8 +158,8 @@ class GeneralSettingsPage extends React.Component<{}, State> {
                     step={1}
                     showBoundaries
                     isInputVisible
-                    inputValue={pollingInterval as number}
-                    onChange={(_e, val) => this.setState({ pollingInterval: val })}
+                    inputValue={pollingInterval ?? 0}
+                    onChange={(_e, val) => this.setState({ pollingInterval: val ?? pollingInterval })}
                   />
                 </FormGroup>
 
@@ -176,8 +176,8 @@ class GeneralSettingsPage extends React.Component<{}, State> {
                     step={1}
                     showBoundaries
                     isInputVisible
-                    inputValue={alertThreshold as number}
-                    onChange={(_e, val) => this.setState({ alertThreshold: val })}
+                    inputValue={alertThreshold ?? 0}
+                    onChange={(_e, val) => this.setState({ alertThreshold: val ?? alertThreshold })}
                   />
                 </FormGroup>
 

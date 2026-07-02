@@ -24,7 +24,8 @@ const GET_ITEM_SALES = gql`
   }
 `;
 
-export class ItemSalesChart extends React.Component {
+interface ItemSalesChartState { data: any[] }
+export class ItemSalesChart extends React.Component<Record<string, never>, ItemSalesChartState> {
   intervalId: NodeJS.Timeout | undefined;
 
   constructor(props) {

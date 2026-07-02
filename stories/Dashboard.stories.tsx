@@ -1,5 +1,7 @@
 import * as React from 'react';
+// @ts-ignore
 import { storiesOf } from '@storybook/react';
+// @ts-ignore
 import { withInfo } from '@storybook/addon-info';
 import { Dashboard } from '@app/Dashboard/Dashboard';
 

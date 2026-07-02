@@ -111,7 +111,12 @@ function mergeClusterDomains(json: string): ClusterDomains {
 function mergeServiceCluster(json: string): ServiceClusterMap {
   let stored: Partial<ServiceClusterMap> = {};
   try { stored = JSON.parse(json); } catch { /* ignore */ }
-  return { ...defaultSettings.serviceCluster, ...stored };
+  const merged = { ...defaultSettings.serviceCluster };
+  for (const key of Object.keys(defaultSettings.serviceCluster)) {
+    const v = stored[key];
+    if (v) merged[key] = v;
+  }
+  return merged;
 }
 
 // ---------------------------------------------------------------------------

@@ -53,7 +53,7 @@ export class WebItem extends React.Component {
                   </Flex>
                 </Flex>
               </DataListCell>,
-              <DataListAction alignright="true">
+              <DataListAction aria-labelledby="web-action" id="web-action" aria-label="actions">
                 <Stack>
                   <StackItem>
                     <Button variant={ButtonVariant.secondary}>Detail</Button>

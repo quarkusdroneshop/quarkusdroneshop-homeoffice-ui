@@ -16,7 +16,8 @@ const CHANGE_MOCKER = gql`
   }
 `;
 
-export class MockerSwitch extends React.Component {
+interface MockerSwitchState { isChecked: boolean; loading: boolean; error: string | null }
+export class MockerSwitch extends React.Component<Record<string, never>, MockerSwitchState> {
   constructor(props) {
     super(props);
     this.state = {

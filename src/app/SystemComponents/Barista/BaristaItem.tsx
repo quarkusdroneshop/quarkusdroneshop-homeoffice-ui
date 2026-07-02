@@ -53,7 +53,7 @@ export class QDCA10Item extends React.Component {
                   </Flex>
                 </Flex>
               </DataListCell>,
-              <DataListAction alignright="true">
+              <DataListAction aria-labelledby="barista-action" id="barista-action" aria-label="actions">
                 <Stack>
                   <StackItem>
                     <Button variant={ButtonVariant.secondary}>Secondary</Button>
