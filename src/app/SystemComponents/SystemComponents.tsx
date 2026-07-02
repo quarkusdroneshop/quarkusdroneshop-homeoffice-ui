@@ -592,7 +592,7 @@ export class SystemComponents extends React.Component<{}, State> {
   }
 
   clusterBadge(cluster: ClusterName) {
-    const color = cluster === 'a-cluster' ? 'purple' : 'cyan';
+    const color = cluster === 'a-cluster' ? 'purple' : cluster === 'c-cluster' ? 'orange' : 'cyan';
     return (
       <Label color={color} isCompact style={{ fontFamily: 'monospace', fontSize: '0.7em' }}>
         {cluster}
@@ -601,7 +601,10 @@ export class SystemComponents extends React.Component<{}, State> {
   }
 
   componentRow(key: string, chartContent: React.ReactNode, detailContent: React.ReactNode) {
-    const { label, cluster } = REPOS[key];
+    const { label } = REPOS[key];
+    // Cluster Settings の serviceCluster を優先し、未設定時は REPOS のデフォルト値を使う
+    const cluster: ClusterName =
+      (this.context?.settings?.serviceCluster?.[key] as ClusterName) ?? REPOS[key].cluster;
     return (
       <DataListItem key={key} id={key}>
         <DataListItemRow>
