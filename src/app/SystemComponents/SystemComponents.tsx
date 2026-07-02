@@ -163,7 +163,7 @@ const emptyWeeklyData: WeekData[] = Array.from({ length: 26 }, (_, i) => ({ week
 // GitHub データのローカルキャッシュ (TTL: 1時間)
 // ページリロードのたびに API を叩かないようにして 403 Rate Limit を回避する
 const GH_CACHE_KEY = 'qdh_github_cache';
-const GH_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const GH_CACHE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours
 
 interface GhCacheEntry {
   ts: number;
