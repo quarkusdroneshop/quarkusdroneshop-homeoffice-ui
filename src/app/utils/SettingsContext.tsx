@@ -133,9 +133,11 @@ export const SettingsContext = React.createContext<SettingsContextValue>({
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = React.useState<AppSettings>(() => {
-    // 初期値: localStorageのUI設定 + デフォルトのクラスタ設定
+    // 初期値: localStorageのUI設定 + クラスタ設定はdeep mergeでデフォルト補完
     const local = loadLocalSettings();
-    return { ...defaultSettings, ...local };
+    const clusterDomains = mergeClusterDomains(JSON.stringify(local.clusterDomains ?? {}));
+    const serviceCluster = mergeServiceCluster(JSON.stringify(local.serviceCluster ?? {}));
+    return { ...defaultSettings, ...local, clusterDomains, serviceCluster };
   });
   const [dbLoading, setDbLoading] = React.useState(true);
 
