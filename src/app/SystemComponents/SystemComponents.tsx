@@ -133,6 +133,7 @@ interface State {
   serviceHealth: Record<string, ServiceStatus>;
   serviceHealthDetail: Record<string, string>;
   serviceMetrics: Record<string, ServiceMetricsData>;
+  serviceMetricsError: string | null;
 }
 
 const REPOS: Record<string, { repo: string; label: string; desc: string; cluster: ClusterName; routePrefix: string }> = {
@@ -247,6 +248,7 @@ export class SystemComponents extends React.Component<{}, State> {
       serviceHealth: initialServiceHealth,
       serviceHealthDetail: {},
       serviceMetrics: {},
+      serviceMetricsError: null,
     };
     this.onCloseDrawerClick = this.onCloseDrawerClick.bind(this);
   }
@@ -349,10 +351,12 @@ export class SystemComponents extends React.Component<{}, State> {
             error: m.error,
           };
         });
-        this.setState({ serviceMetrics: map });
+        this.setState({ serviceMetrics: map, serviceMetricsError: null });
       })
       .catch(err => {
-        console.warn('[ServiceMetrics] fetch failed:', err);
+        const msg = err?.message ?? String(err);
+        console.warn('[ServiceMetrics] fetch failed:', msg);
+        this.setState({ serviceMetricsError: msg });
       });
   }
 
@@ -810,11 +814,16 @@ export class SystemComponents extends React.Component<{}, State> {
     }
 
     if (healthStatus === 'UNKNOWN' || !m) {
+      const { serviceMetricsError } = this.state;
       return (
         <TextContent>
           <Text component="h3">Resource Metrics</Text>
           <Text><span style={{ color: 'var(--pf-global--Color--200)' }}>
-            {healthStatus === 'UNKNOWN' ? 'URL not configured — set cluster domain in Cluster Settings.' : 'No metrics data available.'}
+            {healthStatus === 'UNKNOWN'
+              ? 'URL not configured — set cluster domain in Cluster Settings.'
+              : serviceMetricsError
+              ? `Query error: ${serviceMetricsError}`
+              : 'No metrics data available.'}
           </span></Text>
         </TextContent>
       );
