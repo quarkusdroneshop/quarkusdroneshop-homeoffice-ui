@@ -726,6 +726,9 @@ export class SystemComponents extends React.Component<{}, State> {
     }
 
     const isLiveness = (name: string) => name.toLowerCase().includes('liveness');
+    const visibleChecks = checks.filter(c =>
+      !c.name.toLowerCase().includes('readiness') && !c.name.toLowerCase().includes('startup')
+    );
 
     return (
       <Stack hasGutter>
@@ -734,7 +737,7 @@ export class SystemComponents extends React.Component<{}, State> {
         </StackItem>
         <StackItem>
           <DataList aria-label="health checks" isCompact>
-            {checks.map(check => (
+            {visibleChecks.map(check => (
               <DataListItem key={check.name}>
                 <DataListItemRow>
                   <DataListItemCells dataListCells={[
