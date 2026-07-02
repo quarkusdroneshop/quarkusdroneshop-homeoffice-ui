@@ -58,31 +58,52 @@ app.use('/api/github', (req, res) => {
   proxyReq.end();
 });
 
-// Local health endpoint for homeoffice-ui (Node.js).
-// Must be registered BEFORE the proxy so Express resolves it first.
-// Returns the same JSON structure as Quarkus /q/health so that the
-// homeoffice-backend serviceHealthChecks() query can detect "status":"UP".
+// CPU usage sampling — compute every 5 seconds so /q/metrics can return a recent value
+let lastCpuSample = process.cpuUsage();
+let lastSampleTime = Date.now();
+let currentCpuPct = 0;
+setInterval(() => {
+  const now = Date.now();
+  const elapsed = (now - lastSampleTime) * 1000; // microseconds
+  const usage = process.cpuUsage(lastCpuSample);
+  const total = usage.user + usage.system;
+  currentCpuPct = elapsed > 0 ? Math.min(total / elapsed, 1.0) : 0;
+  lastCpuSample = process.cpuUsage();
+  lastSampleTime = now;
+}, 5000);
+
+// /q/health and /q/metrics must be registered BEFORE the proxy middleware
+// so Express matches them first (proxy pathFilter includes '/q/')
 app.get('/q/health', (_req, res) => {
   res.status(200).json({
     status: 'UP',
     checks: [
       {
-        name: 'node-server',
+        name: 'node-server liveness check',
         status: 'UP',
-        data: {
-          uptime: Math.floor(process.uptime()),
-          nodeVersion: process.version,
-        },
+        data: { uptime: Math.floor(process.uptime()), nodeVersion: process.version },
       },
     ],
   });
 });
 
-// /graphql と /q/ (health/metrics) をバックエンドに転送
-// pathFilter を使うことで Express のパスプレフィックス除去を回避し、フルパスを保持して転送する
+app.get('/q/metrics', (_req, res) => {
+  const mem = process.memoryUsage();
+  const lines = [
+    `process_uptime_seconds ${process.uptime().toFixed(3)}`,
+    `system_cpu_usage ${currentCpuPct.toFixed(6)}`,
+    `jvm_memory_used_bytes{area="heap",id="V8 Heap"} ${mem.heapUsed}`,
+    `jvm_memory_max_bytes{area="heap",id="V8 Heap"} ${mem.heapTotal}`,
+    `jvm_memory_used_bytes{area="nonheap",id="External"} ${mem.external + (mem.arrayBuffers || 0)}`,
+    `jvm_threads_live_threads 1`,
+  ];
+  res.status(200).type('text/plain').send(lines.join('\n') + '\n');
+});
+
+// /graphql をバックエンドに転送 (/q/ はローカルエンドポイントで処理するため除外)
 app.use(
   createProxyMiddleware({
-    pathFilter: ['/graphql', '/q/'],
+    pathFilter: ['/graphql'],
     target: backendUrl,
     changeOrigin: true,
     on: {
