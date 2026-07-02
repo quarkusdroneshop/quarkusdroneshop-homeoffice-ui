@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { gql } from '@apollo/client';
+import client from 'src/apolloclient';
 
 export interface VisibleSections {
   orderUp: boolean;
@@ -19,16 +21,19 @@ export type ServiceClusterMap = Record<string, ClusterName>;
 
 export interface AppSettings {
   pollingIntervalMs: number;
-  inventoryAlertThreshold: number; // percentage (0-100)
+  inventoryAlertThreshold: number;
   activeSite: string;
   visibleSections: VisibleSections;
   clusterDomains: ClusterDomains;
   serviceCluster: ServiceClusterMap;
 }
 
+// ---------------------------------------------------------------------------
+// Defaults (used as fallback while DB is loading or unreachable)
+// ---------------------------------------------------------------------------
 const STORAGE_KEY = 'qdh_settings';
 
-const defaultSettings: AppSettings = {
+export const defaultSettings: AppSettings = {
   pollingIntervalMs: 3000,
   inventoryAlertThreshold: 20,
   activeSite: 'all',
@@ -49,64 +54,127 @@ const defaultSettings: AppSettings = {
   },
 };
 
-function loadSettings(): AppSettings {
+// ---------------------------------------------------------------------------
+// GraphQL
+// ---------------------------------------------------------------------------
+const GET_APP_SETTINGS = gql`
+  query GetAppSettings {
+    getAppSettings {
+      clusterDomains
+      serviceCluster
+    }
+  }
+`;
+
+const SAVE_APP_SETTINGS = gql`
+  mutation SaveAppSettings($input: AppSettingsInput!) {
+    saveAppSettings(input: $input) {
+      clusterDomains
+      serviceCluster
+    }
+  }
+`;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** localStorage に保存されている UI 設定（polling, visibleSections 等）を読み込む */
+function loadLocalSettings(): Partial<AppSettings> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const stored = JSON.parse(raw);
-      // ネストオブジェクトは deep merge: 保存値が空文字でもデフォルト値を保持する
-      const clusterDomains: ClusterDomains = {
-        ...defaultSettings.clusterDomains,
-        ...(stored.clusterDomains ?? {}),
-      };
-      // 保存値が空文字の場合はデフォルト値にフォールバック
-      (Object.keys(clusterDomains) as ClusterName[]).forEach(k => {
-        if (!clusterDomains[k]) clusterDomains[k] = defaultSettings.clusterDomains[k];
-      });
-      const serviceCluster: ServiceClusterMap = {
-        ...defaultSettings.serviceCluster,
-        ...(stored.serviceCluster ?? {}),
-      };
-      return {
-        ...defaultSettings,
-        ...stored,
-        clusterDomains,
-        serviceCluster,
-      };
-    }
-  } catch {
-    // ignore
-  }
-  return defaultSettings;
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return {};
 }
 
-function saveSettings(s: AppSettings) {
+function saveLocalSettings(s: AppSettings) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  } catch {
-    // ignore
-  }
+  } catch { /* ignore */ }
 }
 
+/**
+ * DB から返った JSON 文字列をパースし、デフォルト値と deep merge する。
+ * 空文字はデフォルト値にフォールバック。
+ */
+function mergeClusterDomains(json: string): ClusterDomains {
+  let stored: Partial<ClusterDomains> = {};
+  try { stored = JSON.parse(json); } catch { /* ignore */ }
+  const merged: ClusterDomains = { ...defaultSettings.clusterDomains, ...stored };
+  (Object.keys(merged) as ClusterName[]).forEach(k => {
+    if (!merged[k]) merged[k] = defaultSettings.clusterDomains[k];
+  });
+  return merged;
+}
+
+function mergeServiceCluster(json: string): ServiceClusterMap {
+  let stored: Partial<ServiceClusterMap> = {};
+  try { stored = JSON.parse(json); } catch { /* ignore */ }
+  return { ...defaultSettings.serviceCluster, ...stored };
+}
+
+// ---------------------------------------------------------------------------
+// Context
+// ---------------------------------------------------------------------------
 export interface SettingsContextValue {
   settings: AppSettings;
+  dbLoading: boolean;
   updateSettings: (patch: Partial<AppSettings>) => void;
   toggleSection: (section: keyof VisibleSections) => void;
 }
 
 export const SettingsContext = React.createContext<SettingsContextValue>({
   settings: defaultSettings,
+  dbLoading: true,
   updateSettings: () => undefined,
   toggleSection: () => undefined,
 });
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [settings, setSettings] = React.useState<AppSettings>(loadSettings);
+  const [settings, setSettings] = React.useState<AppSettings>(() => {
+    // 初期値: localStorageのUI設定 + デフォルトのクラスタ設定
+    const local = loadLocalSettings();
+    return { ...defaultSettings, ...local };
+  });
+  const [dbLoading, setDbLoading] = React.useState(true);
+
+  // マウント時にDBからクラスタ設定を取得
+  React.useEffect(() => {
+    client.query({ query: GET_APP_SETTINGS, fetchPolicy: 'no-cache' })
+      .then(res => {
+        const data = res?.data?.getAppSettings;
+        if (data) {
+          const clusterDomains = mergeClusterDomains(data.clusterDomains ?? '{}');
+          const serviceCluster = mergeServiceCluster(data.serviceCluster ?? '{}');
+          setSettings(prev => {
+            const next = { ...prev, clusterDomains, serviceCluster };
+            saveLocalSettings(next);
+            return next;
+          });
+        }
+      })
+      .catch(err => {
+        console.warn('[SettingsContext] Failed to load settings from DB, using local cache:', err.message);
+      })
+      .finally(() => setDbLoading(false));
+  }, []);
 
   const updateSettings = React.useCallback((patch: Partial<AppSettings>) => {
     setSettings(prev => {
       const next = { ...prev, ...patch };
-      saveSettings(next);
+      saveLocalSettings(next);
+
+      // clusterDomains / serviceCluster が含まれる場合は DB にも保存
+      if (patch.clusterDomains !== undefined || patch.serviceCluster !== undefined) {
+        const input = {
+          clusterDomains: JSON.stringify(next.clusterDomains),
+          serviceCluster: JSON.stringify(next.serviceCluster),
+        };
+        client.mutate({ mutation: SAVE_APP_SETTINGS, variables: { input } })
+          .catch(err => console.error('[SettingsContext] Failed to save settings to DB:', err.message));
+      }
+
       return next;
     });
   }, []);
@@ -115,18 +183,15 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSettings(prev => {
       const next = {
         ...prev,
-        visibleSections: {
-          ...prev.visibleSections,
-          [section]: !prev.visibleSections[section],
-        },
+        visibleSections: { ...prev.visibleSections, [section]: !prev.visibleSections[section] },
       };
-      saveSettings(next);
+      saveLocalSettings(next);
       return next;
     });
   }, []);
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, toggleSection }}>
+    <SettingsContext.Provider value={{ settings, dbLoading, updateSettings, toggleSection }}>
       {children}
     </SettingsContext.Provider>
   );

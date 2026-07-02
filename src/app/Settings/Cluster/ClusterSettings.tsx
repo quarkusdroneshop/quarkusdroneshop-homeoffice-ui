@@ -25,6 +25,7 @@ import {
   DataListItemRow,
   DataListItemCells,
   DataListCell,
+  Spinner,
 } from '@patternfly/react-core';
 import { SettingsContext, ClusterName } from '../../utils/SettingsContext';
 
@@ -89,6 +90,19 @@ class ClusterSettingsPage extends React.Component<{}, State> {
     });
   }
 
+  // DB からのロードが完了したら state を最新値で上書き
+  componentDidUpdate(_prevProps: {}, _prevState: State, prevContext?: React.ContextType<typeof SettingsContext>) {
+    const wasLoading = prevContext?.dbLoading;
+    const isLoading  = this.context?.dbLoading;
+    if (wasLoading && !isLoading) {
+      const { settings } = this.context;
+      this.setState({
+        domains: { ...settings.clusterDomains },
+        serviceCluster: { ...settings.serviceCluster },
+      });
+    }
+  }
+
   handleSave() {
     const { updateSettings } = this.context;
     const { domains, serviceCluster } = this.state;
@@ -129,6 +143,7 @@ class ClusterSettingsPage extends React.Component<{}, State> {
 
   render() {
     const { domains, serviceCluster, openSelect, saving, saved } = this.state;
+    const { dbLoading } = this.context;
 
     return (
       <React.Fragment>
@@ -145,8 +160,11 @@ class ClusterSettingsPage extends React.Component<{}, State> {
         <Divider component="div" />
 
         <PageSection variant={PageSectionVariants.default}>
+          {dbLoading && (
+            <Alert variant="info" title={<><Spinner size="sm" style={{ marginRight: 8 }} />Loading settings from database…</>} style={{ marginBottom: '16px' }} />
+          )}
           {saved && (
-            <Alert variant="success" title="Settings saved" style={{ marginBottom: '16px' }} />
+            <Alert variant="success" title="Settings saved to database" style={{ marginBottom: '16px' }} />
           )}
 
           {/* Cluster Domains */}
