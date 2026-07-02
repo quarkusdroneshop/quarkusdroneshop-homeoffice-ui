@@ -193,22 +193,41 @@ function githubUrl(path: string): string {
   return `https://api.github.com/${path}`;
 }
 
-// /stats/* は初回 202 (計算中) を返すことがある。最大 maxRetries 回リトライする。
-function fetchWithRetry(url: string, maxRetries = 4, delayMs = 4000): Promise<any> {
+// /stats/* は初回 202 または空配列 [] (計算中) を返すことがある。最大 maxRetries 回リトライする。
+// 空配列はキャッシュしない（キャッシュされると 3時間グラフが空のままになる）。
+function fetchWithRetry(url: string, maxRetries = 5, delayMs = 3000): Promise<any> {
   const cached = ghCacheGet(url);
-  if (cached !== null) return Promise.resolve(cached);
+  if (cached !== null) {
+    // 空配列がキャッシュされていた場合は無視して再取得
+    if (Array.isArray(cached) && cached.length === 0) {
+      localStorage.removeItem(`${GH_CACHE_KEY}:${url}`);
+    } else {
+      return Promise.resolve(cached);
+    }
+  }
 
   const doFetch = (u: string, remaining: number): Promise<any> =>
     fetch(u).then(r => {
-      if (r.status === 202) {
+      if (r.status === 202 || r.status === 202) {
         if (remaining > 0) {
           return new Promise<void>(resolve => setTimeout(resolve, delayMs))
             .then(() => doFetch(u, remaining - 1));
         }
-        throw new Error('GitHub stats not ready after retries (202)');
+        throw new Error('GitHub stats not ready (202)');
       }
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json().then(data => { ghCacheSet(url, data); return data; });
+      return r.json().then(data => {
+        // 空配列は計算中の可能性があるのでリトライ、キャッシュもしない
+        if (Array.isArray(data) && data.length === 0) {
+          if (remaining > 0) {
+            return new Promise<void>(resolve => setTimeout(resolve, delayMs))
+              .then(() => doFetch(u, remaining - 1));
+          }
+          throw new Error('GitHub stats returned empty array after retries');
+        }
+        ghCacheSet(url, data);
+        return data;
+      });
     });
 
   return doFetch(url, maxRetries);
