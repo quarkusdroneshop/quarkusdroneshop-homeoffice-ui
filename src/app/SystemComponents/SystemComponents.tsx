@@ -187,37 +187,30 @@ function ghCacheSet(key: string, data: any) {
   } catch { /* ignore quota errors */ }
 }
 
-// GitHub API URL — /api/github/* プロキシ (サーバー側で PAT を付与) があればそちらを使い、
-// なければ直接 api.github.com に fallback する
+// GitHub public API — CORS 許可済み (access-control-allow-origin: *) のため直接呼び出し可能
 function githubUrl(path: string): string {
-  return `/api/github/${path}`;
+  return `https://api.github.com/${path}`;
 }
 
-// GitHub の /stats/* は初回 202 (計算中) を返すことがある。最大 retries 回リトライする。
-function fetchWithRetry(url: string, retries = 4, delayMs = 4000): Promise<any> {
-  // キャッシュチェック
+// /stats/* は初回 202 (計算中) を返すことがある。最大 maxRetries 回リトライする。
+function fetchWithRetry(url: string, maxRetries = 4, delayMs = 4000): Promise<any> {
   const cached = ghCacheGet(url);
   if (cached !== null) return Promise.resolve(cached);
 
-  const doFetch = (u: string): Promise<any> =>
+  const doFetch = (u: string, remaining: number): Promise<any> =>
     fetch(u).then(r => {
       if (r.status === 202) {
-        if (retries > 0) {
+        if (remaining > 0) {
           return new Promise<void>(resolve => setTimeout(resolve, delayMs))
-            .then(() => doFetch(u));
+            .then(() => doFetch(u, remaining - 1));
         }
         throw new Error('GitHub stats not ready after retries (202)');
-      }
-      // プロキシが 404 を返した場合 (PAT 未設定) は直接 GitHub へ fallback
-      if (r.status === 404 && u.startsWith('/api/github/')) {
-        const directUrl = u.replace('/api/github/', 'https://api.github.com/');
-        return doFetch(directUrl);
       }
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json().then(data => { ghCacheSet(url, data); return data; });
     });
 
-  return doFetch(url);
+  return doFetch(url, maxRetries);
 }
 
 const defaultMeta: ComponentMeta = {
