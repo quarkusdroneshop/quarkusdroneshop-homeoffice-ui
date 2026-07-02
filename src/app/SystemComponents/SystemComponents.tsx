@@ -39,6 +39,7 @@ import {
   ChartGroup,
   ChartVoronoiContainer,
   ChartAxis,
+  ChartDonut,
 } from '@patternfly/react-charts';
 
 import CodeBranchIcon from '@patternfly/react-icons/dist/js/icons/code-branch-icon';
@@ -78,6 +79,7 @@ const GET_SERVICE_METRICS = gql`
       cpuUsage
       heapUsedBytes
       heapMaxBytes
+      nonHeapUsedBytes
       liveThreads
       uptimeSeconds
       error
@@ -113,6 +115,7 @@ interface ServiceMetricsData {
   cpuUsage: number;
   heapUsedBytes: number;
   heapMaxBytes: number;
+  nonHeapUsedBytes: number;
   liveThreads: number;
   uptimeSeconds: number;
   error?: string;
@@ -347,6 +350,7 @@ export class SystemComponents extends React.Component<{}, State> {
             cpuUsage: m.cpuUsage,
             heapUsedBytes: m.heapUsedBytes,
             heapMaxBytes: m.heapMaxBytes,
+            nonHeapUsedBytes: m.nonHeapUsedBytes,
             liveThreads: m.liveThreads,
             uptimeSeconds: m.uptimeSeconds,
             error: m.error,
@@ -829,8 +833,15 @@ export class SystemComponents extends React.Component<{}, State> {
       );
     }
 
-    const heapPct = m.heapMaxBytes > 0 ? Math.round((m.heapUsedBytes / m.heapMaxBytes) * 100) : 0;
     const cpuPct = Math.round(m.cpuUsage * 100 * 10) / 10;
+    const cpuFree = Math.round((100 - cpuPct) * 10) / 10;
+    const cpuColor = cpuPct > 80 ? '#c9190b' : cpuPct > 50 ? '#f0ab00' : '#3e8635';
+
+    const heapUsedMB = Math.round(m.heapUsedBytes / 1048576);
+    const nonHeapUsedMB = Math.round((m.nonHeapUsedBytes || 0) / 1048576);
+    const heapMaxMB = Math.round(m.heapMaxBytes / 1048576);
+    const heapFreeMB = Math.max(0, heapMaxMB - heapUsedMB);
+    const memTotal = heapUsedMB + nonHeapUsedMB + heapFreeMB;
 
     return (
       <Stack hasGutter>
@@ -838,7 +849,7 @@ export class SystemComponents extends React.Component<{}, State> {
           <TextContent><Text component="h3">Resource Metrics</Text></TextContent>
         </StackItem>
         <StackItem>
-          <DescriptionList isHorizontal>
+          <DescriptionList isHorizontal isCompact>
             <DescriptionListGroup>
               <DescriptionListTerm>Pod Status</DescriptionListTerm>
               <DescriptionListDescription>
@@ -850,40 +861,71 @@ export class SystemComponents extends React.Component<{}, State> {
               <DescriptionListDescription>{fmtUptime(m.uptimeSeconds)}</DescriptionListDescription>
             </DescriptionListGroup>
             <DescriptionListGroup>
-              <DescriptionListTerm>CPU Usage</DescriptionListTerm>
-              <DescriptionListDescription>
-                <Label
-                  color={cpuPct > 80 ? 'red' : cpuPct > 50 ? 'orange' : 'green'}
-                  isCompact
-                >
-                  {cpuPct}%
-                </Label>
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-            <DescriptionListGroup>
               <DescriptionListTerm>Threads</DescriptionListTerm>
               <DescriptionListDescription>{m.liveThreads}</DescriptionListDescription>
             </DescriptionListGroup>
-            <DescriptionListGroup>
-              <DescriptionListTerm>Heap Used</DescriptionListTerm>
-              <DescriptionListDescription>
-                {fmtBytes(m.heapUsedBytes)}
-                {m.heapMaxBytes > 0 && (
-                  <Label
-                    color={heapPct > 80 ? 'red' : heapPct > 60 ? 'orange' : 'blue'}
-                    isCompact
-                    style={{ marginLeft: 6 }}
-                  >
-                    {heapPct}%
-                  </Label>
-                )}
-              </DescriptionListDescription>
-            </DescriptionListGroup>
-            <DescriptionListGroup>
-              <DescriptionListTerm>Heap Max</DescriptionListTerm>
-              <DescriptionListDescription>{m.heapMaxBytes > 0 ? fmtBytes(m.heapMaxBytes) : '—'}</DescriptionListDescription>
-            </DescriptionListGroup>
           </DescriptionList>
+        </StackItem>
+
+        {/* Charts row */}
+        <StackItem>
+          <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+
+            {/* CPU Donut */}
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ height: 160, width: 200 }}>
+                <ChartDonut
+                  ariaDesc="CPU Usage"
+                  ariaTitle="CPU"
+                  data={[
+                    { x: 'Used', y: cpuPct },
+                    { x: 'Free', y: cpuFree },
+                  ]}
+                  labels={({ datum }) => `${datum.x}: ${datum.y}%`}
+                  colorScale={[cpuColor, '#d2d2d2']}
+                  title={`${cpuPct}%`}
+                  subTitle="CPU"
+                  height={160}
+                  width={200}
+                  padding={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  style={{ data: { stroke: 'none' } }}
+                />
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--pf-global--Color--200)', marginTop: 4 }}>
+                System CPU Usage
+              </div>
+            </div>
+
+            {/* Memory Donut */}
+            {memTotal > 0 && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ height: 160, width: 200 }}>
+                  <ChartDonut
+                    ariaDesc="Memory Usage"
+                    ariaTitle="Memory"
+                    data={[
+                      { x: 'Heap Used', y: heapUsedMB },
+                      { x: 'NonHeap Used', y: nonHeapUsedMB },
+                      { x: 'Heap Free', y: heapFreeMB },
+                    ]}
+                    labels={({ datum }) => `${datum.x}: ${datum.y} MB`}
+                    colorScale={['#0066cc', '#8476d1', '#d2d2d2']}
+                    title={fmtBytes(m.heapUsedBytes + (m.nonHeapUsedBytes || 0))}
+                    subTitle="Used"
+                    height={160}
+                    width={200}
+                    padding={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    style={{ data: { stroke: 'none' } }}
+                  />
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--pf-global--Color--200)', marginTop: 4 }}>
+                  <span style={{ color: '#0066cc' }}>■</span> Heap {heapUsedMB}MB &nbsp;
+                  <span style={{ color: '#8476d1' }}>■</span> NonHeap {nonHeapUsedMB}MB &nbsp;
+                  <span style={{ color: '#aaa' }}>■</span> Free {heapFreeMB}MB
+                </div>
+              </div>
+            )}
+          </div>
         </StackItem>
       </Stack>
     );
