@@ -53,7 +53,26 @@ function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return { ...defaultSettings, ...JSON.parse(raw) };
+      const stored = JSON.parse(raw);
+      // ネストオブジェクトは deep merge: 保存値が空文字でもデフォルト値を保持する
+      const clusterDomains: ClusterDomains = {
+        ...defaultSettings.clusterDomains,
+        ...(stored.clusterDomains ?? {}),
+      };
+      // 保存値が空文字の場合はデフォルト値にフォールバック
+      (Object.keys(clusterDomains) as ClusterName[]).forEach(k => {
+        if (!clusterDomains[k]) clusterDomains[k] = defaultSettings.clusterDomains[k];
+      });
+      const serviceCluster: ServiceClusterMap = {
+        ...defaultSettings.serviceCluster,
+        ...(stored.serviceCluster ?? {}),
+      };
+      return {
+        ...defaultSettings,
+        ...stored,
+        clusterDomains,
+        serviceCluster,
+      };
     }
   } catch {
     // ignore

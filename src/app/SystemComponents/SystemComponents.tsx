@@ -285,8 +285,9 @@ export class SystemComponents extends React.Component<{}, State> {
     const { settings } = this.context;
     const { clusterDomains, serviceCluster } = settings;
     return Object.keys(REPOS).map(key => {
-      const cluster = serviceCluster[key] ?? REPOS[key].cluster;
-      const domain = clusterDomains[cluster] ?? '';
+      const cluster: ClusterName = (serviceCluster[key] as ClusterName) || REPOS[key].cluster;
+      // 空文字は未設定扱い — defaultSettings の domain にフォールバック
+      const domain = clusterDomains[cluster] || '';
       const routePrefix = REPOS[key].routePrefix;
       const url = domain ? `http://${routePrefix}.${domain}/q/health` : '';
       return { name: key, url };
