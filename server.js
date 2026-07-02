@@ -5,10 +5,9 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 const port = process.env.PORT || 8080;
 
-// バックエンドURL: 環境変数 GRAPHQL_BACKEND_URL で指定
-// 例: http://quarkusdroneshop-homeoffice:8080  (OpenShift 内 Service 名)
-//     http://localhost:9090                    (ローカル開発)
-const backendUrl = process.env.GRAPHQL_BACKEND_URL || 'http://localhost:9090';
+// デフォルトは OpenShift 内サービス名。env var がなくても動作する。
+// ローカル開発時のみ GRAPHQL_BACKEND_URL=http://localhost:9090 で上書きする。
+const backendUrl = process.env.GRAPHQL_BACKEND_URL || 'http://homeoffice-backend:8080';
 
 console.log(`GraphQL backend: ${backendUrl}`);
 
