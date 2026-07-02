@@ -728,6 +728,8 @@ export class SystemComponents extends React.Component<{}, State> {
       );
     }
 
+    const isLiveness = (name: string) => name.toLowerCase().includes('liveness');
+
     return (
       <Stack hasGutter>
         <StackItem>
@@ -740,14 +742,14 @@ export class SystemComponents extends React.Component<{}, State> {
                 <DataListItemRow>
                   <DataListItemCells dataListCells={[
                     <DataListCell key="name" width={3}>
-                      <strong style={{ fontSize: '0.875em' }}>{check.name}</strong>
+                      <strong>{check.name}</strong>
                     </DataListCell>,
                     <DataListCell key="status" width={1}>
                       {statusLabel(check.status)}
                     </DataListCell>,
                   ]} />
                 </DataListItemRow>
-                {check.data && Object.keys(check.data).length > 0 && (
+                {isLiveness(check.name) && check.data && Object.keys(check.data).length > 0 && (
                   <DataListItemRow>
                     <DataListItemCells dataListCells={[
                       <DataListCell key="sub" style={{ paddingLeft: 24, paddingTop: 0 }}>
@@ -757,16 +759,12 @@ export class SystemComponents extends React.Component<{}, State> {
                               <DataListItemRow>
                                 <DataListItemCells dataListCells={[
                                   <DataListCell key="ch" width={3}>
-                                    <span style={{ fontSize: '0.8em', color: 'var(--pf-global--Color--200)', paddingLeft: 16 }}>
+                                    <span style={{ color: 'var(--pf-global--Color--200)', paddingLeft: 16 }}>
                                       {ch}
                                     </span>
                                   </DataListCell>,
                                   <DataListCell key="val" width={1}>
-                                    <Label
-                                      color={val === '[OK]' ? 'green' : 'red'}
-                                      isCompact
-                                      style={{ fontSize: '0.75em' }}
-                                    >
+                                    <Label color={val === '[OK]' ? 'green' : 'red'} isCompact>
                                       {val}
                                     </Label>
                                   </DataListCell>,
