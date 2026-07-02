@@ -34,13 +34,7 @@ import {
   DescriptionListDescription,
 } from '@patternfly/react-core';
 
-import {
-  ChartBar,
-  ChartGroup,
-  ChartVoronoiContainer,
-  ChartAxis,
-  ChartDonut,
-} from '@patternfly/react-charts';
+import { ChartDonut } from '@patternfly/react-charts';
 
 import CodeBranchIcon from '@patternfly/react-icons/dist/js/icons/code-branch-icon';
 import CubeIcon from '@patternfly/react-icons/dist/js/icons/cube-icon';
@@ -527,65 +521,69 @@ export class SystemComponents extends React.Component<{}, State> {
     return <Label color="grey" isCompact>Unknown</Label>;
   }
 
-  // Commit bar chart — last 26 weeks with date labels at month boundaries
+  // Commit bar chart — pure SVG, last 26 weeks
   commitChart(key: string) {
     const g = this.state.github[key];
     if (g.loading) return <Spinner size="md" />;
-    if (g.githubError) return <span style={{ fontSize: 11, color: '#c9190b' }}>GitHub API error: {g.githubError}</span>;
+    if (g.githubError) return (
+      <span style={{ fontSize: 11, color: '#c9190b' }}>GitHub API error: {g.githubError}</span>
+    );
 
     const weeks = g.weeklyData;
     const maxY = Math.max(...weeks.map(w => w.total), 1);
 
-    // Build tick labels: show date at month boundaries (or every 4 weeks if no timestamps)
-    const tickValues: number[] = [];
-    const tickFormat: Record<number, string> = {};
+    const W = 420, H = 90, padL = 28, padB = 22, padT = 4, padR = 4;
+    const chartW = W - padL - padR;
+    const chartH = H - padT - padB;
+    const barW = Math.floor(chartW / weeks.length) - 1;
+
+    // month boundary labels
+    const labels: { x: number; label: string }[] = [];
     let lastMonth = -1;
     weeks.forEach((w, i) => {
-      const month = w.week > 0
-        ? new Date(w.week * 1000).getMonth()
-        : -1;
-      if (month !== lastMonth) {
-        tickValues.push(i + 1);
-        tickFormat[i + 1] = w.week > 0 ? weekLabel(w.week) : `W-${25 - i}`;
-        lastMonth = month;
+      if (w.week > 0) {
+        const d = new Date(w.week * 1000);
+        const m = d.getMonth();
+        if (m !== lastMonth) {
+          labels.push({ x: padL + i * (chartW / weeks.length), label: weekLabel(w.week) });
+          lastMonth = m;
+        }
       }
     });
 
-    const data = weeks.map((w, i) => ({ x: i + 1, y: w.total }));
+    // y-axis ticks (3 steps)
+    const yTicks = [0, Math.round(maxY / 2), maxY];
 
     return (
-      <div style={{ height: 120, width: 480 }}>
-        <ChartGroup
-          ariaDesc="6-month commit history"
-          ariaTitle="Commits (last 26 weeks)"
-          domainPadding={{ x: 6 }}
-          height={100}
-          width={480}
-          padding={{ top: 8, bottom: 32, left: 36, right: 8 }}
-          domain={{ x: [1, 26], y: [0, maxY + 1] }}
-          containerComponent={
-            <ChartVoronoiContainer
-              constrainToVisibleArea
-              labels={({ datum }) => {
-                const w = weeks[datum.x - 1];
-                const dateStr = w?.week > 0 ? weekLabel(w.week) : `W-${26 - datum.x}`;
-                return `${dateStr}: ${datum.y} commits`;
-              }}
-            />
-          }
-        >
-          <ChartAxis
-            tickValues={tickValues}
-            tickFormat={v => tickFormat[v as number] ?? ''}
-            style={{ tickLabels: { fontSize: 9, angle: -30, textAnchor: 'end' } }}
-          />
-          <ChartAxis dependentAxis tickCount={4} style={{ tickLabels: { fontSize: 9 } }} />
-          <ChartBar
-            data={data}
-            style={{ data: { fill: '#0066cc', width: 10 } }}
-          />
-        </ChartGroup>
-      </div>
+      <svg width={W} height={H} aria-label="Commits last 26 weeks" style={{ display: 'block' }}>
+        {/* y-axis grid lines + labels */}
+        {yTicks.map(v => {
+          const y = padT + chartH - (v / maxY) * chartH;
+          return (
+            <g key={v}>
+              <line x1={padL} x2={W - padR} y1={y} y2={y} stroke="#e0e0e0" strokeWidth={1} />
+              <text x={padL - 3} y={y + 3} textAnchor="end" fontSize={8} fill="#666">{v}</text>
+            </g>
+          );
+        })}
+        {/* bars */}
+        {weeks.map((w, i) => {
+          const barH = maxY > 0 ? (w.total / maxY) * chartH : 0;
+          const x = padL + i * (chartW / weeks.length) + 1;
+          const y = padT + chartH - barH;
+          return (
+            <rect key={i} x={x} y={y} width={barW} height={barH} fill="#0066cc" opacity={0.85}>
+              <title>{w.week > 0 ? weekLabel(w.week) : `W${i + 1}`}: {w.total} commits</title>
+            </rect>
+          );
+        })}
+        {/* x-axis line */}
+        <line x1={padL} x2={W - padR} y1={padT + chartH} y2={padT + chartH} stroke="#666" strokeWidth={1} />
+        {/* x-axis month labels */}
+        {labels.map((l, i) => (
+          <text key={i} x={l.x} y={H - 4} fontSize={8} fill="#666">{l.label}</text>
+        ))}
+      </svg>
     );
   }
 
