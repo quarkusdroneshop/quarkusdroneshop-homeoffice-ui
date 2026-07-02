@@ -844,9 +844,7 @@ export class SystemComponents extends React.Component<{}, State> {
 
     const heapUsedMB = Math.round(m.heapUsedBytes / 1048576);
     const nonHeapUsedMB = Math.round((m.nonHeapUsedBytes || 0) / 1048576);
-    const heapMaxMB = Math.round(m.heapMaxBytes / 1048576);
-    const heapFreeMB = Math.max(0, heapMaxMB - heapUsedMB);
-    const memTotal = heapUsedMB + nonHeapUsedMB + heapFreeMB;
+    const memTotal = heapUsedMB + nonHeapUsedMB;
 
     return (
       <Stack hasGutter>
@@ -909,12 +907,11 @@ export class SystemComponents extends React.Component<{}, State> {
                     ariaDesc="Memory Usage"
                     ariaTitle="Memory"
                     data={[
-                      { x: 'Heap Used', y: heapUsedMB },
-                      { x: 'NonHeap Used', y: nonHeapUsedMB },
-                      { x: 'Heap Free', y: heapFreeMB },
+                      { x: 'Heap', y: heapUsedMB },
+                      { x: 'NonHeap', y: nonHeapUsedMB },
                     ]}
                     labels={({ datum }) => `${datum.x}: ${datum.y} MB`}
-                    colorScale={['#0066cc', '#8476d1', '#d2d2d2']}
+                    colorScale={['#0066cc', '#8476d1']}
                     title={fmtBytes(m.heapUsedBytes + (m.nonHeapUsedBytes || 0))}
                     subTitle="Used"
                     height={160}
@@ -925,8 +922,7 @@ export class SystemComponents extends React.Component<{}, State> {
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--pf-global--Color--200)', marginTop: 4 }}>
                   <span style={{ color: '#0066cc' }}>■</span> Heap {heapUsedMB}MB &nbsp;
-                  <span style={{ color: '#8476d1' }}>■</span> NonHeap {nonHeapUsedMB}MB &nbsp;
-                  <span style={{ color: '#aaa' }}>■</span> Free {heapFreeMB}MB
+                  <span style={{ color: '#8476d1' }}>■</span> NonHeap {nonHeapUsedMB}MB
                 </div>
               </div>
             )}
