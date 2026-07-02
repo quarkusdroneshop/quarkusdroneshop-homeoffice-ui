@@ -105,6 +105,7 @@ interface State {
   github: Record<string, ComponentMeta>;
   backendHealth: 'ok' | 'error' | 'checking';
   serviceHealth: Record<string, ServiceStatus>;
+  serviceHealthDetail: Record<string, string>;
 }
 
 const REPOS: Record<string, { repo: string; label: string; desc: string; cluster: ClusterName; routePrefix: string }> = {
@@ -207,6 +208,7 @@ export class SystemComponents extends React.Component<{}, State> {
   static contextType = SettingsContext;
   context!: React.ContextType<typeof SettingsContext>;
   private intervalId: number | null = null;
+  private _prevSettingsKey = '';
 
   constructor(props: {}) {
     super(props);
@@ -223,11 +225,16 @@ export class SystemComponents extends React.Component<{}, State> {
       github: Object.fromEntries(Object.keys(REPOS).map(k => [k, { ...defaultMeta }])),
       backendHealth: 'checking',
       serviceHealth: initialServiceHealth,
+      serviceHealthDetail: {},
     };
     this.onCloseDrawerClick = this.onCloseDrawerClick.bind(this);
   }
 
   componentDidMount() {
+    const curr = this.context?.settings;
+    if (curr) {
+      this._prevSettingsKey = JSON.stringify({ d: curr.clusterDomains, s: curr.serviceCluster });
+    }
     this.loadInventory();
     this.loadGitHub();
     this.checkBackendHealth();
@@ -237,6 +244,20 @@ export class SystemComponents extends React.Component<{}, State> {
       this.checkBackendHealth();
       this.loadServiceHealth();
     }, 30000);
+  }
+
+  componentDidUpdate() {
+    const curr = this.context?.settings;
+    if (!curr) return;
+    const key = JSON.stringify({ d: curr.clusterDomains, s: curr.serviceCluster });
+    if (key !== this._prevSettingsKey) {
+      this._prevSettingsKey = key;
+      const resetting: Record<string, ServiceStatus> = Object.fromEntries(
+        Object.keys(REPOS).map(k => [k, 'CHECKING' as ServiceStatus])
+      );
+      resetting['HomeofficUI'] = 'UP';
+      this.setState({ serviceHealth: resetting }, () => this.loadServiceHealth());
+    }
   }
 
   componentWillUnmount() {
@@ -277,14 +298,15 @@ export class SystemComponents extends React.Component<{}, State> {
     client
       .query({ query: GET_SERVICE_HEALTH, variables: { inputs }, fetchPolicy: 'no-cache' })
       .then(res => {
-        const checks: { name: string; status: string }[] = res?.data?.serviceHealthChecks ?? [];
+        const checks: { name: string; status: string; detail: string }[] = res?.data?.serviceHealthChecks ?? [];
         const map: Record<string, ServiceStatus> = {};
+        const detailMap: Record<string, string> = {};
         checks.forEach(c => {
           map[c.name] = (c.status === 'UP' ? 'UP' : c.status === 'DOWN' ? 'DOWN' : 'UNKNOWN') as ServiceStatus;
+          if (c.detail) detailMap[c.name] = c.detail;
         });
-        // HomeofficUI は自分自身が表示できているので常に UP
         map['HomeofficUI'] = 'UP';
-        this.setState({ serviceHealth: map });
+        this.setState({ serviceHealth: map, serviceHealthDetail: detailMap });
       })
       .catch(() => {
         const map: Record<string, ServiceStatus> =
@@ -541,6 +563,11 @@ export class SystemComponents extends React.Component<{}, State> {
 
         <StackItem>
           <Divider component="div" style={{ margin: '8px 0' }} />
+          {this.healthDetailPanel(key)}
+        </StackItem>
+
+        <StackItem>
+          <Divider component="div" style={{ margin: '8px 0' }} />
           <TextContent>
             <Text component="h3">Resource Metrics</Text>
             <Text component="small" style={{ color: 'var(--pf-global--Color--200)' }}>
@@ -585,6 +612,115 @@ export class SystemComponents extends React.Component<{}, State> {
                 </DataListItem>
               );
             })}
+          </DataList>
+        </StackItem>
+      </Stack>
+    );
+  }
+
+  healthDetailPanel(key: string) {
+    const raw = this.state.serviceHealthDetail[key];
+    const status = this.state.serviceHealth[key] ?? 'CHECKING';
+
+    if (status === 'CHECKING') {
+      return (
+        <TextContent>
+          <Text component="h3">Health Checks</Text>
+          <Spinner size="sm" />
+        </TextContent>
+      );
+    }
+
+    if (status === 'UNKNOWN') {
+      return (
+        <TextContent>
+          <Text component="h3">Health Checks</Text>
+          <Text><span style={{ color: 'var(--pf-global--Color--200)' }}>URL not configured — set cluster domain in Cluster Settings.</span></Text>
+        </TextContent>
+      );
+    }
+
+    let checks: { name: string; status: string; data?: Record<string, string> }[] = [];
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.checks)) checks = parsed.checks;
+      } catch {
+        // not JSON (e.g. error message)
+      }
+    }
+
+    const statusLabel = (s: string) => {
+      const up = s === 'UP';
+      return (
+        <Label color={up ? 'green' : 'red'} isCompact>
+          {up ? <CheckCircleIcon /> : <ExclamationTriangleIcon />} {s}
+        </Label>
+      );
+    };
+
+    if (checks.length === 0) {
+      return (
+        <TextContent>
+          <Text component="h3">Health Checks</Text>
+          <Text>{status === 'DOWN' ? <Label color="red" isCompact><ExclamationTriangleIcon /> DOWN</Label> : raw || 'No data'}</Text>
+        </TextContent>
+      );
+    }
+
+    return (
+      <Stack hasGutter>
+        <StackItem>
+          <TextContent><Text component="h3">Health Checks</Text></TextContent>
+        </StackItem>
+        <StackItem>
+          <DataList aria-label="health checks" isCompact>
+            {checks.map(check => (
+              <DataListItem key={check.name}>
+                <DataListItemRow>
+                  <DataListItemCells dataListCells={[
+                    <DataListCell key="name" width={3}>
+                      <strong style={{ fontSize: '0.875em' }}>{check.name}</strong>
+                    </DataListCell>,
+                    <DataListCell key="status" width={1}>
+                      {statusLabel(check.status)}
+                    </DataListCell>,
+                  ]} />
+                </DataListItemRow>
+                {check.data && Object.keys(check.data).length > 0 && (
+                  <DataListItemRow>
+                    <DataListItemCells dataListCells={[
+                      <DataListCell key="sub" style={{ paddingLeft: 24, paddingTop: 0 }}>
+                        <DataList aria-label={`${check.name} details`} isCompact style={{ border: 'none' }}>
+                          {Object.entries(check.data).map(([ch, val]) => (
+                            <DataListItem key={ch}>
+                              <DataListItemRow>
+                                <DataListItemCells dataListCells={[
+                                  <DataListCell key="ch" width={3}>
+                                    <span style={{ fontSize: '0.8em', color: 'var(--pf-global--Color--200)', paddingLeft: 16 }}>
+                                      {ch}
+                                    </span>
+                                  </DataListCell>,
+                                  <DataListCell key="val" width={1}>
+                                    <Label
+                                      color={val === '[OK]' ? 'green' : 'red'}
+                                      isCompact
+                                      style={{ fontSize: '0.75em' }}
+                                    >
+                                      {val}
+                                    </Label>
+                                  </DataListCell>,
+                                ]} />
+                              </DataListItemRow>
+                            </DataListItem>
+                          ))}
+                        </DataList>
+                      </DataListCell>,
+                    ]} />
+                  </DataListItemRow>
+                )}
+              </DataListItem>
+            ))}
           </DataList>
         </StackItem>
       </Stack>

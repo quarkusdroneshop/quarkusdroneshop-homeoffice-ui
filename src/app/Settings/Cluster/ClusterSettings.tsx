@@ -60,6 +60,7 @@ interface State {
   domains: Record<ClusterName, string>;
   serviceCluster: Record<string, ClusterName>;
   openSelect: string | null;
+  saving: boolean;
   saved: boolean;
 }
 
@@ -73,6 +74,7 @@ class ClusterSettingsPage extends React.Component<{}, State> {
       domains: { 'a-cluster': '', 'b-cluster': '', 'c-cluster': '' },
       serviceCluster: {},
       openSelect: null,
+      saving: false,
       saved: false,
     };
     this.handleSave = this.handleSave.bind(this);
@@ -90,9 +92,10 @@ class ClusterSettingsPage extends React.Component<{}, State> {
   handleSave() {
     const { updateSettings } = this.context;
     const { domains, serviceCluster } = this.state;
+    this.setState({ saving: true });
     updateSettings({ clusterDomains: domains, serviceCluster });
-    this.setState({ saved: true });
-    setTimeout(() => this.setState({ saved: false }), 3000);
+    setTimeout(() => this.setState({ saving: false, saved: true }), 300);
+    setTimeout(() => this.setState({ saved: false }), 3300);
   }
 
   handleRevert() {
@@ -125,7 +128,7 @@ class ClusterSettingsPage extends React.Component<{}, State> {
   }
 
   render() {
-    const { domains, serviceCluster, openSelect, saved } = this.state;
+    const { domains, serviceCluster, openSelect, saving, saved } = this.state;
 
     return (
       <React.Fragment>
@@ -235,8 +238,16 @@ class ClusterSettingsPage extends React.Component<{}, State> {
           </Card>
 
           <ActionGroup>
-            <Button variant="primary" onClick={this.handleSave}>Save</Button>
-            <Button variant="link" onClick={this.handleRevert}>Revert Changes</Button>
+            <Button
+              variant={saved ? 'primary' : 'primary'}
+              onClick={this.handleSave}
+              isDisabled={saving || saved}
+              isLoading={saving}
+              style={saved ? { backgroundColor: 'var(--pf-global--success-color--100)', borderColor: 'var(--pf-global--success-color--100)' } : {}}
+            >
+              {saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save'}
+            </Button>
+            <Button variant="link" onClick={this.handleRevert} isDisabled={saving}>Revert Changes</Button>
           </ActionGroup>
         </PageSection>
       </React.Fragment>
