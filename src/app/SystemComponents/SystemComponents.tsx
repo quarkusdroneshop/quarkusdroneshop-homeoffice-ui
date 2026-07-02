@@ -71,6 +71,20 @@ const GET_SERVICE_HEALTH = gql`
   }
 `;
 
+const GET_SERVICE_METRICS = gql`
+  query ServiceMetrics($inputs: [ServiceHealthInput]!) {
+    serviceMetrics(inputs: $inputs) {
+      name
+      cpuUsage
+      heapUsedBytes
+      heapMaxBytes
+      liveThreads
+      uptimeSeconds
+      error
+    }
+  }
+`;
+
 interface InventoryLevel {
   itemName: string;
   remaining: number;
@@ -95,6 +109,15 @@ interface ComponentMeta {
 
 type ServiceStatus = 'UP' | 'DOWN' | 'UNKNOWN' | 'CHECKING';
 
+interface ServiceMetricsData {
+  cpuUsage: number;
+  heapUsedBytes: number;
+  heapMaxBytes: number;
+  liveThreads: number;
+  uptimeSeconds: number;
+  error?: string;
+}
+
 interface State {
   isDrawerExpanded: boolean;
   drawerTitle: string;
@@ -106,6 +129,7 @@ interface State {
   backendHealth: 'ok' | 'error' | 'checking';
   serviceHealth: Record<string, ServiceStatus>;
   serviceHealthDetail: Record<string, string>;
+  serviceMetrics: Record<string, ServiceMetricsData>;
 }
 
 const REPOS: Record<string, { repo: string; label: string; desc: string; cluster: ClusterName; routePrefix: string }> = {
@@ -226,6 +250,7 @@ export class SystemComponents extends React.Component<{}, State> {
       backendHealth: 'checking',
       serviceHealth: initialServiceHealth,
       serviceHealthDetail: {},
+      serviceMetrics: {},
     };
     this.onCloseDrawerClick = this.onCloseDrawerClick.bind(this);
   }
@@ -239,10 +264,12 @@ export class SystemComponents extends React.Component<{}, State> {
     this.loadGitHub();
     this.checkBackendHealth();
     this.loadServiceHealth();
+    this.loadServiceMetrics();
     this.intervalId = window.setInterval(() => {
       this.loadInventory();
       this.checkBackendHealth();
       this.loadServiceHealth();
+      this.loadServiceMetrics();
     }, 30000);
   }
 
@@ -256,7 +283,10 @@ export class SystemComponents extends React.Component<{}, State> {
         Object.keys(REPOS).map(k => [k, 'CHECKING' as ServiceStatus])
       );
       resetting['HomeofficUI'] = 'UP';
-      this.setState({ serviceHealth: resetting }, () => this.loadServiceHealth());
+      this.setState({ serviceHealth: resetting }, () => {
+        this.loadServiceHealth();
+        this.loadServiceMetrics();
+      });
     }
   }
 
@@ -286,12 +316,47 @@ export class SystemComponents extends React.Component<{}, State> {
     const { clusterDomains, serviceCluster } = settings;
     return Object.keys(REPOS).map(key => {
       const cluster: ClusterName = (serviceCluster[key] as ClusterName) || REPOS[key].cluster;
-      // 空文字は未設定扱い — defaultSettings の domain にフォールバック
       const domain = clusterDomains[cluster] || '';
       const routePrefix = REPOS[key].routePrefix;
       const url = domain ? `http://${routePrefix}.${domain}/q/health` : '';
       return { name: key, url };
     });
+  }
+
+  buildMetricsInputs(): { name: string; url: string }[] {
+    const { settings } = this.context;
+    const { clusterDomains, serviceCluster } = settings;
+    return Object.keys(REPOS).map(key => {
+      const cluster: ClusterName = (serviceCluster[key] as ClusterName) || REPOS[key].cluster;
+      const domain = clusterDomains[cluster] || '';
+      const routePrefix = REPOS[key].routePrefix;
+      const url = domain ? `http://${routePrefix}.${domain}/q/metrics` : '';
+      return { name: key, url };
+    });
+  }
+
+  loadServiceMetrics() {
+    const inputs = this.buildMetricsInputs();
+    client
+      .query({ query: GET_SERVICE_METRICS, variables: { inputs }, fetchPolicy: 'no-cache' })
+      .then(res => {
+        const list: (ServiceMetricsData & { name: string })[] = res?.data?.serviceMetrics ?? [];
+        const map: Record<string, ServiceMetricsData> = {};
+        list.forEach(m => {
+          map[m.name] = {
+            cpuUsage: m.cpuUsage,
+            heapUsedBytes: m.heapUsedBytes,
+            heapMaxBytes: m.heapMaxBytes,
+            liveThreads: m.liveThreads,
+            uptimeSeconds: m.uptimeSeconds,
+            error: m.error,
+          };
+        });
+        this.setState({ serviceMetrics: map });
+      })
+      .catch(err => {
+        console.warn('[ServiceMetrics] fetch failed:', err);
+      });
   }
 
   loadServiceHealth() {
@@ -569,13 +634,7 @@ export class SystemComponents extends React.Component<{}, State> {
 
         <StackItem>
           <Divider component="div" style={{ margin: '8px 0' }} />
-          <TextContent>
-            <Text component="h3">Resource Metrics</Text>
-            <Text component="small" style={{ color: 'var(--pf-global--Color--200)' }}>
-              CPU / memory / pod status requires Prometheus or OpenShift metrics endpoint.
-              Configure the homeoffice backend to proxy cluster metrics to enable this view.
-            </Text>
-          </TextContent>
+          {this.resourceMetricsPanel(key)}
         </StackItem>
       </Stack>
     );
@@ -723,6 +782,110 @@ export class SystemComponents extends React.Component<{}, State> {
               </DataListItem>
             ))}
           </DataList>
+        </StackItem>
+      </Stack>
+    );
+  }
+
+  resourceMetricsPanel(key: string) {
+    const m = this.state.serviceMetrics[key];
+    const healthStatus = this.state.serviceHealth[key] ?? 'CHECKING';
+
+    const fmtBytes = (b: number) => {
+      if (b >= 1073741824) return `${(b / 1073741824).toFixed(1)} GB`;
+      if (b >= 1048576) return `${(b / 1048576).toFixed(0)} MB`;
+      return `${(b / 1024).toFixed(0)} KB`;
+    };
+    const fmtUptime = (s: number) => {
+      if (s < 60) return `${Math.floor(s)}s`;
+      if (s < 3600) return `${Math.floor(s / 60)}m`;
+      return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+    };
+
+    if (healthStatus === 'CHECKING') {
+      return (
+        <TextContent>
+          <Text component="h3">Resource Metrics</Text>
+          <Spinner size="sm" />
+        </TextContent>
+      );
+    }
+
+    if (healthStatus === 'UNKNOWN' || !m) {
+      return (
+        <TextContent>
+          <Text component="h3">Resource Metrics</Text>
+          <Text><span style={{ color: 'var(--pf-global--Color--200)' }}>
+            {healthStatus === 'UNKNOWN' ? 'URL not configured — set cluster domain in Cluster Settings.' : 'No metrics data available.'}
+          </span></Text>
+        </TextContent>
+      );
+    }
+
+    if (m.error) {
+      return (
+        <TextContent>
+          <Text component="h3">Resource Metrics</Text>
+          <Text><span style={{ color: 'var(--pf-global--Color--200)' }}>{m.error}</span></Text>
+        </TextContent>
+      );
+    }
+
+    const heapPct = m.heapMaxBytes > 0 ? Math.round((m.heapUsedBytes / m.heapMaxBytes) * 100) : 0;
+    const cpuPct = Math.round(m.cpuUsage * 100 * 10) / 10;
+
+    return (
+      <Stack hasGutter>
+        <StackItem>
+          <TextContent><Text component="h3">Resource Metrics</Text></TextContent>
+        </StackItem>
+        <StackItem>
+          <DescriptionList isHorizontal columnModifier={{ default: '2Col' }}>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Pod Status</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Label color="green" isCompact><CheckCircleIcon /> Running</Label>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Uptime</DescriptionListTerm>
+              <DescriptionListDescription>{fmtUptime(m.uptimeSeconds)}</DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>CPU Usage</DescriptionListTerm>
+              <DescriptionListDescription>
+                <Label
+                  color={cpuPct > 80 ? 'red' : cpuPct > 50 ? 'orange' : 'green'}
+                  isCompact
+                >
+                  {cpuPct}%
+                </Label>
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Threads</DescriptionListTerm>
+              <DescriptionListDescription>{m.liveThreads}</DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Heap Used</DescriptionListTerm>
+              <DescriptionListDescription>
+                {fmtBytes(m.heapUsedBytes)}
+                {m.heapMaxBytes > 0 && (
+                  <Label
+                    color={heapPct > 80 ? 'red' : heapPct > 60 ? 'orange' : 'blue'}
+                    isCompact
+                    style={{ marginLeft: 6 }}
+                  >
+                    {heapPct}%
+                  </Label>
+                )}
+              </DescriptionListDescription>
+            </DescriptionListGroup>
+            <DescriptionListGroup>
+              <DescriptionListTerm>Heap Max</DescriptionListTerm>
+              <DescriptionListDescription>{m.heapMaxBytes > 0 ? fmtBytes(m.heapMaxBytes) : '—'}</DescriptionListDescription>
+            </DescriptionListGroup>
+          </DescriptionList>
         </StackItem>
       </Stack>
     );
