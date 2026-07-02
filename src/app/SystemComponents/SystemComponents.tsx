@@ -316,7 +316,7 @@ export class SystemComponents extends React.Component<{}, State> {
       const cluster: ClusterName = (serviceCluster[key] as ClusterName) || REPOS[key].cluster;
       const domain = clusterDomains[cluster] || '';
       const routePrefix = REPOS[key].routePrefix;
-      const url = domain ? `http://${routePrefix}.${domain}/q/health` : '';
+      const url = domain ? `http://${routePrefix}.${domain}/q/health/live` : '';
       return { name: key, url };
     });
   }
@@ -730,9 +730,6 @@ export class SystemComponents extends React.Component<{}, State> {
     }
 
     const isLiveness = (name: string) => name.toLowerCase().includes('liveness');
-    const visibleChecks = checks.filter(c =>
-      !c.name.toLowerCase().includes('readiness') && !c.name.toLowerCase().includes('startup')
-    );
 
     return (
       <Stack hasGutter>
@@ -741,7 +738,7 @@ export class SystemComponents extends React.Component<{}, State> {
         </StackItem>
         <StackItem>
           <DataList aria-label="health checks" isCompact>
-            {visibleChecks.map(check => (
+            {checks.map(check => (
               <DataListItem key={check.name}>
                 <DataListItemRow>
                   <DataListItemCells dataListCells={[
