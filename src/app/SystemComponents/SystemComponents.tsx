@@ -838,7 +838,7 @@ export class SystemComponents extends React.Component<{}, State> {
           <TextContent><Text component="h3">Resource Metrics</Text></TextContent>
         </StackItem>
         <StackItem>
-          <DescriptionList isHorizontal columnModifier={{ default: '2Col' }}>
+          <DescriptionList isHorizontal>
             <DescriptionListGroup>
               <DescriptionListTerm>Pod Status</DescriptionListTerm>
               <DescriptionListDescription>
