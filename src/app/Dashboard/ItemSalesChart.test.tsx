@@ -11,9 +11,9 @@ jest.mock('@patternfly/react-charts', () => ({
 import { ItemSalesChart } from './ItemSalesChart';
 
 const mockSalesData = [
-  { item: 'COFFEE_BLACK', revenue: 1200, salesTotal: 40 },
-  { item: 'COFFEE_WITH_ROOM', revenue: 800, salesTotal: 25 },
-  { item: 'ESPRESSO', revenue: 600, salesTotal: 20 },
+  { item: 'QDC_A101', revenue: 1200, salesTotal: 40 },
+  { item: 'QDC_A102', revenue: 800, salesTotal: 25 },
+  { item: 'QDC_A103', revenue: 600, salesTotal: 20 },
 ];
 
 describe('ItemSalesChart コンポーネント', () => {
