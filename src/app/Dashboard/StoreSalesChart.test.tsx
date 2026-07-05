@@ -22,16 +22,16 @@ const mockStoreSales = [
     server: 'server-1',
     store: 'Tokyo',
     itemSales: [
-      { item: 'COFFEE_BLACK', salesTotal: 30, revenue: 900 },
-      { item: 'ESPRESSO', salesTotal: 10, revenue: 300 },
+      { item: 'QDC_A101', salesTotal: 30, revenue: 900 },
+      { item: 'QDC_A102', salesTotal: 10, revenue: 300 },
     ],
   },
   {
     server: 'server-2',
     store: 'Osaka',
     itemSales: [
-      { item: 'COFFEE_BLACK', salesTotal: 20, revenue: 600 },
-      { item: 'ESPRESSO', salesTotal: 15, revenue: 450 },
+      { item: 'QDC_A101', salesTotal: 20, revenue: 600 },
+      { item: 'QDC_A102', salesTotal: 15, revenue: 450 },
     ],
   },
 ];
@@ -81,12 +81,12 @@ describe('StoreSalesChart コンポーネント', () => {
       {
         server: 'server-1',
         store: 'Tokyo',
-        itemSales: [{ item: 'COFFEE_BLACK', salesTotal: 10, revenue: 300 }],
+        itemSales: [{ item: 'QDC_A101', salesTotal: 10, revenue: 300 }],
       },
       {
         server: 'server-2',
         store: 'Tokyo',
-        itemSales: [{ item: 'COFFEE_BLACK', salesTotal: 20, revenue: 600 }],
+        itemSales: [{ item: 'QDC_A101', salesTotal: 20, revenue: 600 }],
       },
     ];
     (mockClient.query as jest.Mock).mockResolvedValue({

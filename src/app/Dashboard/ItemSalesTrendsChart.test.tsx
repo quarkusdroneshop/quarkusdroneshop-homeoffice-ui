@@ -24,16 +24,16 @@ const makeSaleDate = (daysAgo: number) => {
 
 const mockProductSales = [
   {
-    item: 'COFFEE_BLACK',
+    item: 'QDC_A101',
     productItemSales: [
-      { item: 'COFFEE_BLACK', saleDate: makeSaleDate(1), salesTotal: 10 },
-      { item: 'COFFEE_BLACK', saleDate: makeSaleDate(2), salesTotal: 15 },
+      { item: 'QDC_A101', saleDate: makeSaleDate(1), salesTotal: 10 },
+      { item: 'QDC_A101', saleDate: makeSaleDate(2), salesTotal: 15 },
     ],
   },
   {
-    item: 'ESPRESSO',
+    item: 'QDC_A102',
     productItemSales: [
-      { item: 'ESPRESSO', saleDate: makeSaleDate(1), salesTotal: 5 },
+      { item: 'QDC_A102', saleDate: makeSaleDate(1), salesTotal: 5 },
     ],
   },
 ];
