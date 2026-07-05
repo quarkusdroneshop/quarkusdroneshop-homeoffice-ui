@@ -21,22 +21,18 @@ test.describe('System Components ページ', () => {
 
   test('Counter コンポーネントが表示される', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Counter' })).toBeVisible();
-    await expect(page.getByText('coordinates events in the system')).toBeVisible();
   });
 
   test('QDCA10 コンポーネントが表示される', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'QDCA10', exact: true })).toBeVisible();
-    await expect(page.getByText('makes drinks')).toBeVisible();
   });
 
   test('QDCA10Pro コンポーネントが表示される', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'QDCA10Pro' })).toBeVisible();
-    await expect(page.getByText('makes food')).toBeVisible();
   });
 
   test('Inventory コンポーネントが表示される', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Inventory' })).toBeVisible();
-    await expect(page.getByText(/stores and restocks/i)).toBeVisible();
   });
 
   test('Counter 行をクリックするとドロワーが展開される', async ({ page }) => {

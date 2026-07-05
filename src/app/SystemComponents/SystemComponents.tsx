@@ -470,11 +470,11 @@ export class SystemComponents extends React.Component<{}, State> {
     publishSystemAlerts(alerts);
   }
 
-  inventoryPct(category: 'drone' | 'food'): number {
+  inventoryPct(category: 'drone' | 'pro'): number {
     const { inventory } = this.state;
     const keywords = category === 'drone'
-      ? ['DRONE', 'drone', 'Drone']
-      : ['FOOD', 'food', 'Food', 'BURGER', 'FRIES', 'MUFFIN'];
+      ? ['QDC_A101', 'QDC_A102', 'QDC_A103', 'QDC_A104']
+      : ['QDC_A105_Pro'];
     const items = inventory.filter(i =>
       keywords.some(k => i.itemName.toUpperCase().includes(k.toUpperCase()))
     );
@@ -1012,9 +1012,6 @@ export class SystemComponents extends React.Component<{}, State> {
     const droneItems = inventory.filter(i =>
       ['DRONE', 'drone', 'Drone'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase()))
     );
-    const foodItems = inventory.filter(i =>
-      ['FOOD', 'food', 'BURGER', 'FRIES', 'MUFFIN'].some(k => i.itemName.toUpperCase().includes(k.toUpperCase()))
-    );
 
     const inventorySummary = (
       <Flex direction={{ default: 'column' }}>
@@ -1063,7 +1060,7 @@ export class SystemComponents extends React.Component<{}, State> {
 
         {this.componentRow('QDCA10Pro',
           this.commitChart('QDCA10Pro'),
-          this.repoDetail('QDCA10Pro', this.inventoryDetail(foodItems)))}
+          this.repoDetail('QDCA10Pro', this.inventoryDetail(droneItems)))}
 
         {this.componentRow('Inventory',
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>

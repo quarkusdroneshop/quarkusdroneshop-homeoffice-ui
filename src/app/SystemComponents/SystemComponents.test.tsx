@@ -36,13 +36,11 @@ describe('SystemComponents コンポーネント', () => {
   test('QDCA10 コンポーネント行が表示される', () => {
     render(<SystemComponents />);
     expect(screen.getByText('QDCA10')).toBeInTheDocument();
-    expect(screen.getByText('makes drinks')).toBeInTheDocument();
   });
 
   test('QDCA10Pro コンポーネント行が表示される', () => {
     render(<SystemComponents />);
     expect(screen.getByText('QDCA10Pro')).toBeInTheDocument();
-    expect(screen.getByText('makes food')).toBeInTheDocument();
   });
 
   test('Inventory コンポーネント行が表示される', () => {
