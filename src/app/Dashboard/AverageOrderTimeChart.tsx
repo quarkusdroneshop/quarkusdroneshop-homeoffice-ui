@@ -49,8 +49,8 @@ function formatMs(ms: number): string {
 }
 
 // Demo scale: maps real processing ms to simulated delivery time.
-// DEMO_SCALE = 17_280 → typical ~12,500ms processing ≈ 2.5 days delivery
-const DEMO_SCALE = 17_280;
+// DEMO_SCALE = 100 → typical ~6,000,000ms (100min) processing ≈ 7 days delivery
+const DEMO_SCALE = 100;
 
 function formatDeliveryTime(ms: number): string {
   const scaled = ms * DEMO_SCALE;
@@ -135,10 +135,11 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
     // ChartBullet スケール
     let MAX_VAL: number, WARN_VAL: number, CRIT_VAL: number, displayValue: number;
     if (demoMode) {
-      // Demo: thresholds at 2 days (warn) / 3 days (crit) / 4 days (max)
+      // Demo: thresholds at 2 days (warn) / 3 days (crit) within normal range;
+      // the display/gauge itself is capped at 7 days when over threshold.
       WARN_VAL = Math.round(2 * 86_400_000 / DEMO_SCALE);
       CRIT_VAL = Math.round(3 * 86_400_000 / DEMO_SCALE);
-      MAX_VAL  = Math.round(4 * 86_400_000 / DEMO_SCALE);
+      MAX_VAL  = Math.round(7 * 86_400_000 / DEMO_SCALE);
       displayValue = hasData ? Math.min(averageOrderUpTime, MAX_VAL) : 1;
     } else {
       // Normal: 2min / 5min / 10min (ms)
@@ -177,7 +178,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
             comparativeWarningMeasureData={[{ name: warnLabel, y: WARN_VAL }]}
             comparativeErrorMeasureData={[{ name: critLabel, y: CRIT_VAL }]}
             qualitativeRangeData={[
-              { name: demoMode ? 'Over 4d' : 'Over 10m', y: MAX_VAL },
+              { name: demoMode ? 'Over 7d' : 'Over 10m', y: MAX_VAL },
               { name: demoMode ? 'Within 3d' : 'Within 5m', y: CRIT_VAL },
               { name: demoMode ? 'Within 2d' : 'Within 2m', y: WARN_VAL },
             ]}
