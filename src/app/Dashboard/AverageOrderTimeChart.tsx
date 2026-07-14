@@ -58,7 +58,10 @@ function formatDeliveryTime(ms: number): string {
   const days  = Math.floor(totalHours / 24);
   const hours = totalHours % 24;
   if (days > 0) return `${days}d ${hours}h`;
-  return `${hours}h`;
+  if (hours > 0) return `${hours}h`;
+  const totalMinutes = Math.floor(scaled / 60_000);
+  if (totalMinutes > 0) return `${totalMinutes}m`;
+  return `${Math.floor(scaled / 1000)}s`;
 }
 
 export class AverageOrderTimeChart extends React.Component<{}, State> {
