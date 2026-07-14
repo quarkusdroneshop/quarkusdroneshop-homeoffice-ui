@@ -59,7 +59,7 @@ export const defaultSettings: AppSettings = {
 // ---------------------------------------------------------------------------
 const GET_APP_SETTINGS = gql`
   query GetAppSettings {
-    getAppSettings {
+    appSettings {
       clusterDomains
       serviceCluster
     }
@@ -150,7 +150,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   React.useEffect(() => {
     client.query({ query: GET_APP_SETTINGS, fetchPolicy: 'no-cache' })
       .then(res => {
-        const data = res?.data?.getAppSettings;
+        const data = res?.data?.appSettings;
         if (data) {
           const clusterDomains = mergeClusterDomains(data.clusterDomains ?? '{}');
           const serviceCluster = mergeServiceCluster(data.serviceCluster ?? '{}');
