@@ -48,10 +48,13 @@ export class ItemSalesChart extends React.Component<Record<string, never>, ItemS
   }
 
   loadGraphqlData() {
+    // バックエンドは startDate/endDate を JST の暦日として解釈するため、
+    // UTC ではなく JST 基準の日付文字列を生成する（toISOString() は UTC のため使用しない）。
+    const jstDateString = (d: Date) => new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const endingDate = new Date();
-    const endDateString = endingDate.toISOString().slice(0, 10);
+    const endDateString = jstDateString(endingDate);
     endingDate.setDate(endingDate.getDate() - 6);
-    const startDateString = endingDate.toISOString().slice(0, 10);
+    const startDateString = jstDateString(endingDate);
 
     client
       .query({

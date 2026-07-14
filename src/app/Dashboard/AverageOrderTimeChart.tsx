@@ -89,11 +89,14 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
   }
 
   loadGraphqlData() {
+    // バックエンドは startDate/endDate を JST の暦日として解釈するため、
+    // UTC ではなく JST 基準の日付文字列を生成する（toISOString() は UTC のため使用しない）。
+    const jstDateString = (d: Date) => new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const end = new Date();
-    const endDateString = end.toISOString().slice(0, 10);
+    const endDateString = jstDateString(end);
     const start = new Date();
     start.setDate(start.getDate() - 6);
-    const startDateString = start.toISOString().slice(0, 10);
+    const startDateString = jstDateString(start);
     const vars = { variables: { startDate: startDateString, endDate: endDateString }, fetchPolicy: 'no-cache' as const };
 
     client

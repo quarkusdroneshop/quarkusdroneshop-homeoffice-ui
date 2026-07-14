@@ -47,12 +47,15 @@ export class StoreSalesChart extends React.Component<Record<string, never>, Stor
     }
   
     loadGraphqlData() {
+      // バックエンドは startDate/endDate を JST の暦日として解釈するため、
+      // UTC ではなく JST 基準の日付文字列を生成する（toISOString() は UTC のため使用しない）。
+      const jstDateString = (d: Date) => new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const endingDate = new Date();
-      const endDateString = endingDate.toISOString().slice(0, 10);
-  
+      const endDateString = jstDateString(endingDate);
+
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - 6);
-      const startDateString = startDate.toISOString().slice(0, 10);
+      const startDateString = jstDateString(startDate);
   
       const GET_STORESALES = gql`
         query StoreSales($startDate: String!, $endDate: String!) {
