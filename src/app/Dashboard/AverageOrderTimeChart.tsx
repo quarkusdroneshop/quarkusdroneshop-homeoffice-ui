@@ -11,7 +11,7 @@ import {
   Badge,
   Checkbox,
 } from '@patternfly/react-core';
-import { ChartBullet } from '@patternfly/react-charts';
+import { ChartBullet, ChartAxis } from '@patternfly/react-charts';
 import { gql } from '@apollo/client';
 import client from 'src/apolloclient';
 import { SettingsContext } from '../utils/SettingsContext';
@@ -186,6 +186,7 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               { name: demoMode ? 'Within 2d' : 'Within 2m', y: WARN_VAL },
             ]}
             labels={({ datum }) => `${datum.name}: ${fmt(datum.y)}`}
+            axisComponent={<ChartAxis tickFormat={(t: number) => fmt(t)} />}
           />
 
           {/* P50 / P95 / P99 パーセンタイル表示 */}
