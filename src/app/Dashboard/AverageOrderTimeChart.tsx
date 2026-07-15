@@ -52,8 +52,11 @@ function formatMs(ms: number): string {
 // DEMO_SCALE = 100 → typical ~6,000,000ms (100min) processing ≈ 7 days delivery
 const DEMO_SCALE = 100;
 
+// 実処理時間が短い注文でも「基本的に1日以上」の配送日数として見せるための下限。
+const MIN_DELIVERY_MS = 24 * 3_600_000;
+
 function formatDeliveryTime(ms: number): string {
-  const scaled = ms * DEMO_SCALE;
+  const scaled = Math.max(ms * DEMO_SCALE, MIN_DELIVERY_MS);
   const totalHours = Math.floor(scaled / 3_600_000);
   const days  = Math.floor(totalHours / 24);
   const hours = totalHours % 24;
