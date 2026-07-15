@@ -67,6 +67,15 @@ function formatDeliveryTime(ms: number): string {
   return `${Math.floor(scaled / 1000)}s`;
 }
 
+// 軸目盛り専用: 1日未満へのフロアや分/秒への丸めを行わず、常に "Xd Yh" 形式で表示する。
+function formatAxisTick(ms: number): string {
+  const scaled = ms * DEMO_SCALE;
+  const totalHours = Math.floor(scaled / 3_600_000);
+  const days  = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+  return `${days}d ${hours}h`;
+}
+
 export class AverageOrderTimeChart extends React.Component<{}, State> {
   static contextType = SettingsContext;
   context!: React.ContextType<typeof SettingsContext>;
@@ -189,7 +198,12 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
               { name: demoMode ? 'Within 2d' : 'Within 2m', y: WARN_VAL },
             ]}
             labels={({ datum }) => `${datum.name}: ${fmt(datum.y)}`}
-            axisComponent={<ChartAxis tickFormat={(t: number) => fmt(t)} />}
+            axisComponent={
+              <ChartAxis
+                tickFormat={(t: number) => (demoMode ? formatAxisTick(t) : fmt(t))}
+                tickValues={demoMode ? [0, 1, 2, 3, 5, 7].map(d => (d * 86_400_000) / DEMO_SCALE) : undefined}
+              />
+            }
           />
 
           {/* P50 / P95 / P99 パーセンタイル表示 */}
