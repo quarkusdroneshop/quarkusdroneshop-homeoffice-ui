@@ -67,13 +67,11 @@ function formatDeliveryTime(ms: number): string {
   return `${Math.floor(scaled / 1000)}s`;
 }
 
-// 軸目盛り専用: 1日未満へのフロアや分/秒への丸めを行わず、常に "Xd Yh" 形式で表示する。
+// 軸目盛り専用: 1日未満へのフロアを行わず、"Xd" のみのシンプルな形式で表示する。
 function formatAxisTick(ms: number): string {
   const scaled = ms * DEMO_SCALE;
-  const totalHours = Math.floor(scaled / 3_600_000);
-  const days  = Math.floor(totalHours / 24);
-  const hours = totalHours % 24;
-  return `${days}d ${hours}h`;
+  const days = Math.round(scaled / 86_400_000);
+  return `${days}d`;
 }
 
 export class AverageOrderTimeChart extends React.Component<{}, State> {
@@ -155,7 +153,8 @@ export class AverageOrderTimeChart extends React.Component<{}, State> {
       WARN_VAL = Math.round(2 * 86_400_000 / DEMO_SCALE);
       CRIT_VAL = Math.round(3 * 86_400_000 / DEMO_SCALE);
       MAX_VAL  = Math.round(7 * 86_400_000 / DEMO_SCALE);
-      displayValue = hasData ? Math.min(averageOrderUpTime, MAX_VAL) : 1;
+      const MIN_VAL = Math.round(MIN_DELIVERY_MS / DEMO_SCALE);
+      displayValue = hasData ? Math.max(Math.min(averageOrderUpTime, MAX_VAL), MIN_VAL) : 1;
     } else {
       // Normal: 2min / 5min / 10min (ms)
       WARN_VAL = 120_000;
