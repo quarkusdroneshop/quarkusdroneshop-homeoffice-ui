@@ -66,18 +66,47 @@ type State = {
 type OrderMeta = {
   queueSeenAt?: number;
   queueDelayMs?: number;
+  progressSeenAt?: number;
+  progressDelayMs?: number;
   fulfilledSeenAt?: number;
 };
 
 // デモ用の見た目遷移設定:
 // - In Queue に入ってからランダムな時間（3〜10秒）で In Progress に見せかけで遷移させる
+// - In Progress に入ってからランダムな時間（約15秒、10〜20秒）で Order Up に見せかけで遷移させる
 // - Order Up (FULFILLED) は表示されてから 30 秒でボードから消す
 const IN_PROGRESS_DELAY_MIN_MS = 3000;
 const IN_PROGRESS_DELAY_MAX_MS = 10000;
+const FULFILLED_DELAY_MIN_MS = 10000;
+const FULFILLED_DELAY_MAX_MS = 20000;
 const FULFILLED_VISIBLE_MS = 30000;
 
-function randomInProgressDelay(): number {
-  return IN_PROGRESS_DELAY_MIN_MS + Math.random() * (IN_PROGRESS_DELAY_MAX_MS - IN_PROGRESS_DELAY_MIN_MS);
+function randomDelay(minMs: number, maxMs: number): number {
+  return minMs + Math.random() * (maxMs - minMs);
+}
+
+// リロードしても見た目遷移が最初からやり直しにならないよう、
+// 各注文の遷移タイミングを localStorage に永続化する。
+const META_STORAGE_KEY = 'orderBoardMeta.v1';
+
+function loadPersistedMeta(): Map<string, OrderMeta> {
+  try {
+    const raw = window.localStorage.getItem(META_STORAGE_KEY);
+    if (!raw) return new Map();
+    const obj = JSON.parse(raw) as Record<string, OrderMeta>;
+    return new Map(Object.entries(obj));
+  } catch (e) {
+    console.warn('Failed to load persisted order board meta', e);
+    return new Map();
+  }
+}
+
+function persistMeta(meta: Map<string, OrderMeta>) {
+  try {
+    window.localStorage.setItem(META_STORAGE_KEY, JSON.stringify(Object.fromEntries(meta)));
+  } catch (e) {
+    console.warn('Failed to persist order board meta', e);
+  }
 }
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -135,7 +164,7 @@ export class OrderBoard extends React.Component<{}, State> {
   context!: React.ContextType<typeof SettingsContext>;
   private intervalId: number | null = null;
   private tickIntervalId: number | null = null;
-  private orderMeta: Map<string, OrderMeta> = new Map();
+  private orderMeta: Map<string, OrderMeta> = loadPersistedMeta();
 
   constructor(props: {}) {
     super(props);
@@ -148,8 +177,12 @@ export class OrderBoard extends React.Component<{}, State> {
     const interval = this.context?.settings?.pollingIntervalMs ?? 3000;
     this.intervalId = window.setInterval(this.loadData, interval);
     // 見た目の遷移（In Progress への昇格 / Order Up の非表示）をポーリング間隔より
-    // 滑らかに反映するための再描画専用タイマー
-    this.tickIntervalId = window.setInterval(() => this.forceUpdate(), 1000);
+    // 滑らかに反映するための再描画専用タイマー。lazy に更新される meta も
+    // ここで localStorage へ書き戻し、リロードしても遷移がやり直しにならないようにする。
+    this.tickIntervalId = window.setInterval(() => {
+      this.forceUpdate();
+      persistMeta(this.orderMeta);
+    }, 1000);
   }
 
   componentWillUnmount() {
@@ -167,6 +200,7 @@ export class OrderBoard extends React.Component<{}, State> {
           .sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())
           .slice(0, MAX_ORDERS);
         this.syncOrderMeta(orders);
+        persistMeta(this.orderMeta);
         this.setState({ orders, loading: false, error: null });
       })
       .catch((err) => {
@@ -190,9 +224,11 @@ export class OrderBoard extends React.Component<{}, State> {
 
       if (order.status === 'IN_QUEUE' && meta.queueSeenAt === undefined) {
         meta.queueSeenAt = Date.now();
-        meta.queueDelayMs = randomInProgressDelay();
+        meta.queueDelayMs = randomDelay(IN_PROGRESS_DELAY_MIN_MS, IN_PROGRESS_DELAY_MAX_MS);
       }
 
+      // バックエンドが実際に完了を報告した場合はそれを正として記録する
+      // （見た目遷移で先に FULFILLED 扱いになっていた場合も上書きしない）
       if (order.status === 'FULFILLED' && meta.fulfilledSeenAt === undefined) {
         meta.fulfilledSeenAt = Date.now();
       }
@@ -207,19 +243,41 @@ export class OrderBoard extends React.Component<{}, State> {
   // バックエンドの実ステータスに、デモ用の見た目遷移を重ねた表示用ステータスを返す
   displayStatus(order: LiveOrder): OrderStatus | null {
     const meta = this.orderMeta.get(order.orderId);
+    const now = Date.now();
 
     if (order.status === 'FULFILLED') {
-      if (meta?.fulfilledSeenAt !== undefined && Date.now() - meta.fulfilledSeenAt >= FULFILLED_VISIBLE_MS) {
+      if (meta?.fulfilledSeenAt !== undefined && now - meta.fulfilledSeenAt >= FULFILLED_VISIBLE_MS) {
         return null; // 30秒経過したので Order Up 列から非表示にする
       }
       return 'FULFILLED';
     }
 
-    if (order.status === 'IN_QUEUE') {
-      if (meta?.queueSeenAt !== undefined && meta.queueDelayMs !== undefined
-          && Date.now() - meta.queueSeenAt >= meta.queueDelayMs) {
+    if (order.status === 'IN_QUEUE' && meta) {
+      const promotedToProgress = meta.queueSeenAt !== undefined && meta.queueDelayMs !== undefined
+        && now - meta.queueSeenAt >= meta.queueDelayMs;
+
+      if (promotedToProgress) {
+        if (meta.progressSeenAt === undefined) {
+          meta.progressSeenAt = now;
+          meta.progressDelayMs = randomDelay(FULFILLED_DELAY_MIN_MS, FULFILLED_DELAY_MAX_MS);
+        }
+
+        const promotedToFulfilled = meta.progressDelayMs !== undefined
+          && now - meta.progressSeenAt >= meta.progressDelayMs;
+
+        if (promotedToFulfilled) {
+          if (meta.fulfilledSeenAt === undefined) {
+            meta.fulfilledSeenAt = now;
+          }
+          if (now - meta.fulfilledSeenAt >= FULFILLED_VISIBLE_MS) {
+            return null; // 見た目遷移分も 30秒経過したら非表示にする
+          }
+          return 'FULFILLED';
+        }
+
         return 'IN_PROGRESS';
       }
+
       return 'IN_QUEUE';
     }
 
