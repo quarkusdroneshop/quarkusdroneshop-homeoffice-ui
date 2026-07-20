@@ -63,6 +63,23 @@ type State = {
   isSiteSelectOpen: boolean;
 };
 
+type OrderMeta = {
+  queueSeenAt?: number;
+  queueDelayMs?: number;
+  fulfilledSeenAt?: number;
+};
+
+// デモ用の見た目遷移設定:
+// - In Queue に入ってからランダムな時間（3〜10秒）で In Progress に見せかけで遷移させる
+// - Order Up (FULFILLED) は表示されてから 30 秒でボードから消す
+const IN_PROGRESS_DELAY_MIN_MS = 3000;
+const IN_PROGRESS_DELAY_MAX_MS = 10000;
+const FULFILLED_VISIBLE_MS = 30000;
+
+function randomInProgressDelay(): number {
+  return IN_PROGRESS_DELAY_MIN_MS + Math.random() * (IN_PROGRESS_DELAY_MAX_MS - IN_PROGRESS_DELAY_MIN_MS);
+}
+
 const STATUS_LABELS: Record<OrderStatus, string> = {
   IN_QUEUE:    'In Queue',
   IN_PROGRESS: 'In Progress',
@@ -117,6 +134,8 @@ export class OrderBoard extends React.Component<{}, State> {
   static contextType = SettingsContext;
   context!: React.ContextType<typeof SettingsContext>;
   private intervalId: number | null = null;
+  private tickIntervalId: number | null = null;
+  private orderMeta: Map<string, OrderMeta> = new Map();
 
   constructor(props: {}) {
     super(props);
@@ -128,10 +147,14 @@ export class OrderBoard extends React.Component<{}, State> {
     this.loadData();
     const interval = this.context?.settings?.pollingIntervalMs ?? 3000;
     this.intervalId = window.setInterval(this.loadData, interval);
+    // 見た目の遷移（In Progress への昇格 / Order Up の非表示）をポーリング間隔より
+    // 滑らかに反映するための再描画専用タイマー
+    this.tickIntervalId = window.setInterval(() => this.forceUpdate(), 1000);
   }
 
   componentWillUnmount() {
     if (this.intervalId !== null) clearInterval(this.intervalId);
+    if (this.tickIntervalId !== null) clearInterval(this.tickIntervalId);
   }
 
   loadData() {
@@ -143,12 +166,64 @@ export class OrderBoard extends React.Component<{}, State> {
           .slice()
           .sort((a, b) => new Date(b.updatedAt ?? b.createdAt).getTime() - new Date(a.updatedAt ?? a.createdAt).getTime())
           .slice(0, MAX_ORDERS);
+        this.syncOrderMeta(orders);
         this.setState({ orders, loading: false, error: null });
       })
       .catch((err) => {
         console.error('LiveOrders GraphQL error:', err);
         this.setState({ loading: false, error: String(err) });
       });
+  }
+
+  // 各注文の状態遷移タイミングを記録する。バックエンドの実際のステータスは
+  // 変更せず、表示専用のメタ情報のみをローカルに保持する。
+  syncOrderMeta(orders: LiveOrder[]) {
+    const seenIds = new Set<string>();
+
+    orders.forEach(order => {
+      seenIds.add(order.orderId);
+      let meta = this.orderMeta.get(order.orderId);
+      if (!meta) {
+        meta = {};
+        this.orderMeta.set(order.orderId, meta);
+      }
+
+      if (order.status === 'IN_QUEUE' && meta.queueSeenAt === undefined) {
+        meta.queueSeenAt = Date.now();
+        meta.queueDelayMs = randomInProgressDelay();
+      }
+
+      if (order.status === 'FULFILLED' && meta.fulfilledSeenAt === undefined) {
+        meta.fulfilledSeenAt = Date.now();
+      }
+    });
+
+    // ボード上の対象から外れた注文のメタ情報は破棄してメモリを肥大化させない
+    Array.from(this.orderMeta.keys()).forEach(id => {
+      if (!seenIds.has(id)) this.orderMeta.delete(id);
+    });
+  }
+
+  // バックエンドの実ステータスに、デモ用の見た目遷移を重ねた表示用ステータスを返す
+  displayStatus(order: LiveOrder): OrderStatus | null {
+    const meta = this.orderMeta.get(order.orderId);
+
+    if (order.status === 'FULFILLED') {
+      if (meta?.fulfilledSeenAt !== undefined && Date.now() - meta.fulfilledSeenAt >= FULFILLED_VISIBLE_MS) {
+        return null; // 30秒経過したので Order Up 列から非表示にする
+      }
+      return 'FULFILLED';
+    }
+
+    if (order.status === 'IN_QUEUE') {
+      if (meta?.queueSeenAt !== undefined && meta.queueDelayMs !== undefined
+          && Date.now() - meta.queueSeenAt >= meta.queueDelayMs) {
+        return 'IN_PROGRESS';
+      }
+      return 'IN_QUEUE';
+    }
+
+    return order.status;
   }
 
   render() {
@@ -201,7 +276,7 @@ export class OrderBoard extends React.Component<{}, State> {
           )}
           <Flex spaceItems={{ default: 'spaceItemsLg' }} alignItems={{ default: 'alignItemsFlexStart' }}>
             {COLUMNS.map(col => {
-              const colOrders = filteredOrders.filter(o => o.status === col);
+              const colOrders = filteredOrders.filter(o => this.displayStatus(o) === col);
               return (
                 <FlexItem key={col} style={{ flex: '1 1 0', minWidth: '240px' }}>
                   <Card isHoverable>
