@@ -88,6 +88,7 @@
     "@patternfly/react-core": "^4.278.1",
     "@patternfly/react-icons": "^4.9.2",
     "@patternfly/react-styles": "^4.8.2",
+    "@patternfly/react-table": "^4.113.7",
     "apollo-cache-inmemory": "^1.6.6",
     "apollo-client": "^2.6.10",
     "apollo-link-http": "^1.5.17",

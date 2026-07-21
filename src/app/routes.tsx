@@ -6,6 +6,7 @@ import { accessibleRouteChangeHandler } from '@app/utils/utils';
 import { Dashboard } from '@app/Dashboard/Dashboard';
 import { SystemComponents } from '@app/SystemComponents/SystemComponents';
 import { OrderBoard } from '@app/OrderBoard/OrderBoard';
+import { InventoryManagement } from '@app/InventoryManagement/InventoryManagement';
 import { GeneralSettings } from '@app/Settings/General/GeneralSettings';
 import { ProfileSettings } from '@app/Settings/Profile/ProfileSettings';
 import { ClusterSettings } from '@app/Settings/Cluster/ClusterSettings';
@@ -93,6 +94,18 @@ const routes: AppRouteConfig[] = [
         label: 'Support',
         path: '/support',
         title: 'Quarkus Droneshop | Support Page',
+      },
+    ],
+  },
+  {
+    label: 'Inventory',
+    routes: [
+      {
+        component: InventoryManagement,
+        exact: true,
+        label: 'Inventory Management',
+        path: '/inventory',
+        title: 'Quarkus Droneshop | Inventory Management',
       },
     ],
   },
