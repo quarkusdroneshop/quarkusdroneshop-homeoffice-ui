@@ -12,6 +12,7 @@ import {
   TextInput,
   Button,
   Badge,
+  Switch,
 } from '@patternfly/react-core';
 import { Table, Thead, Tr, Th, Tbody, Td } from '@patternfly/react-table';
 import { gql } from '@apollo/client';
@@ -43,6 +44,11 @@ interface InventoryLevel {
   item: string;
   inStockQuantity: number;
 }
+
+// トグルを Out of Stock → In Stock に戻す際、具体的な数量入力なしで
+// 復帰できるようにするためのデフォルト補充数。任意の数量に変更したい場合は
+// 引き続き New Quantity 入力欄 + Update ボタンを使う。
+const DEFAULT_RESTOCK_QUANTITY = 10;
 
 type State = {
   levels: InventoryLevel[];
@@ -125,7 +131,7 @@ export class InventoryManagement extends React.Component<{}, State> {
           <TextContent>
             <Text component="h1">Inventory Management</Text>
             <Text component="p">
-              品目ごとの在庫数を確認し、欠品(0)への変更や在庫追加ができます。(在庫サービス: bsite)
+              Check stock levels for each item, mark items as out of stock (0), or add inventory. (Inventory service: bsite)
             </Text>
           </TextContent>
         </PageSection>
@@ -192,13 +198,16 @@ export class InventoryManagement extends React.Component<{}, State> {
                             >
                               Update
                             </Button>
-                            <Button
-                              variant="danger"
-                              isDisabled={busy || isOutOfStock}
-                              onClick={() => this.restock(level.item, 0)}
-                            >
-                              Mark Out of Stock
-                            </Button>
+                            <Switch
+                              id={`out-of-stock-switch-${level.item}`}
+                              label="In Stock"
+                              labelOff="Out of Stock"
+                              isChecked={!isOutOfStock}
+                              isDisabled={busy}
+                              onChange={(_event, checked: boolean) =>
+                                this.restock(level.item, checked ? DEFAULT_RESTOCK_QUANTITY : 0)
+                              }
+                            />
                           </Td>
                         </Tr>
                       );
