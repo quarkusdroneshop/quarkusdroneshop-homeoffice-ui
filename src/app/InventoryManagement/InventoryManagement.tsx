@@ -204,7 +204,7 @@ export class InventoryManagement extends React.Component<{}, State> {
                               labelOff="Out of Stock"
                               isChecked={!isOutOfStock}
                               isDisabled={busy}
-                              onChange={(_event, checked: boolean) =>
+                              onChange={(checked: boolean) =>
                                 this.restock(level.item, checked ? DEFAULT_RESTOCK_QUANTITY : 0)
                               }
                             />
