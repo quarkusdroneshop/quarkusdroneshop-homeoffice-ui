@@ -45,7 +45,7 @@ describe('ItemSalesTrendsChart コンポーネント', () => {
 
   test('カードタイトル "Item Sales Trends" が表示される', async () => {
     (mockClient.query as jest.Mock).mockResolvedValue({
-      data: { productSalesByDate: [] },
+      data: { itemSalesTrendsByDate: [] },
     });
     await act(async () => { render(<ItemSalesTrendsChart />); });
     expect(screen.getByText('Item Sales Trends')).toBeInTheDocument();
@@ -53,7 +53,7 @@ describe('ItemSalesTrendsChart コンポーネント', () => {
 
   test('データ取得後にチャートが描画される', async () => {
     (mockClient.query as jest.Mock).mockResolvedValue({
-      data: { productSalesByDate: mockProductSales },
+      data: { itemSalesTrendsByDate: mockProductSales },
     });
     await act(async () => { render(<ItemSalesTrendsChart />); });
     await waitFor(() =>
@@ -67,7 +67,7 @@ describe('ItemSalesTrendsChart コンポーネント', () => {
       ...mockProductSales,
     ];
     (mockClient.query as jest.Mock).mockResolvedValue({
-      data: { productSalesByDate: dataWithEmpty },
+      data: { itemSalesTrendsByDate: dataWithEmpty },
     });
     await act(async () => { render(<ItemSalesTrendsChart />); });
     await waitFor(() =>
@@ -77,7 +77,7 @@ describe('ItemSalesTrendsChart コンポーネント', () => {
 
   test('saleDate が文字列から Date に変換されてもクラッシュしない', async () => {
     (mockClient.query as jest.Mock).mockResolvedValue({
-      data: { productSalesByDate: mockProductSales },
+      data: { itemSalesTrendsByDate: mockProductSales },
     });
     await act(async () => { render(<ItemSalesTrendsChart />); });
     expect(screen.getByText('Item Sales Trends')).toBeInTheDocument();
@@ -93,9 +93,9 @@ describe('ItemSalesTrendsChart コンポーネント', () => {
     (console.error as jest.Mock).mockRestore();
   });
 
-  test('productSalesByDate が undefined のときも安全に処理する', async () => {
+  test('itemSalesTrendsByDate が undefined のときも安全に処理する', async () => {
     (mockClient.query as jest.Mock).mockResolvedValue({
-      data: { productSalesByDate: undefined },
+      data: { itemSalesTrendsByDate: undefined },
     });
     await act(async () => { render(<ItemSalesTrendsChart />); });
     expect(screen.getByText('Item Sales Trends')).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe('ItemSalesTrendsChart コンポーネント', () => {
 
   test('componentDidMount で query が呼ばれる', async () => {
     (mockClient.query as jest.Mock).mockResolvedValue({
-      data: { productSalesByDate: [] },
+      data: { itemSalesTrendsByDate: [] },
     });
     await act(async () => { render(<ItemSalesTrendsChart />); });
     expect(mockClient.query).toHaveBeenCalledTimes(1);

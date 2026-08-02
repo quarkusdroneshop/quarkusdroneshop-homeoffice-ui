@@ -46,8 +46,8 @@ export class ItemSalesTrendsChart extends React.Component<Record<string, never>,
         
 
         const GET_PRODUCT_SALES = gql`
-        query productSalesByDate($startDate: String!, $endDate: String!){
-          productSalesByDate (startDate: $startDate, endDate: $endDate) {
+        query itemSalesTrendsByDate($startDate: String!, $endDate: String!){
+          itemSalesTrendsByDate (startDate: $startDate, endDate: $endDate) {
             item
             productItemSales {
               item
@@ -59,12 +59,12 @@ export class ItemSalesTrendsChart extends React.Component<Record<string, never>,
         `;
 
         //console.log("Making GraphQL Request")
-        client.query({ 
-            query: GET_PRODUCT_SALES , 
+        client.query({
+            query: GET_PRODUCT_SALES ,
             variables: {startDate: startDateString, endDate: endDateString}
           })
           .then(response => {
-            const rawData = response.data?.productSalesByDate || [];
+            const rawData = response.data?.itemSalesTrendsByDate || [];
 
             const converted = rawData.map(item => ({
               ...item,
