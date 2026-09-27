@@ -37,13 +37,11 @@ export class ItemSalesTrendsChart extends React.Component<Record<string, never>,
 
       loadGraphqlData(){
         const endingDate = new Date();
-
-        endingDate.setDate(endingDate.getDate() - 1);
         const endDateString = endingDate.toISOString().slice(0,10);
 
         endingDate.setDate(endingDate.getDate() - 6);
         const startDateString = endingDate.toISOString().slice(0,10);
-        
+
 
         const GET_PRODUCT_SALES = gql`
         query itemSalesTrendsByDate($startDate: String!, $endDate: String!){
